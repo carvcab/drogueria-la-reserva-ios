@@ -1,6 +1,6 @@
 import Foundation
 
-struct Product: Identifiable, Hashable {
+struct Product: Identifiable, Codable, Hashable {
     var id: String?
     var name: String
     var category: String

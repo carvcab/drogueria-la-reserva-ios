@@ -1,6 +1,6 @@
 import Foundation
 
-struct Provider: Identifiable, Hashable {
+struct Provider: Identifiable, Codable, Hashable {
     var id: String?
     var name: String
     var nit: String

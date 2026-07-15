@@ -1,6 +1,6 @@
 import Foundation
 
-struct Customer: Identifiable, Hashable {
+struct Customer: Identifiable, Codable, Hashable {
     var id: String?
     var name: String
     var cedula: String

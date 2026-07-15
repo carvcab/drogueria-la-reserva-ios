@@ -1,6 +1,6 @@
 import Foundation
 
-struct CustomerTransaction: Identifiable {
+struct CustomerTransaction: Identifiable, Codable {
     var id: String?
     var customerId: String
     var date: String

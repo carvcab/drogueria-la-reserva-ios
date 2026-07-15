@@ -257,6 +257,11 @@ class FirebaseService: ObservableObject {
     }
 
     // MARK: - Products
+    func getProducts() async throws -> [Product] {
+        let snapshot = try await db.collection("products").order(by: "name").getDocuments()
+        return snapshot.documents.map { Product.fromFirestore($0.data(), id: $0.documentID) }
+    }
+
     func listenProducts(completion: @escaping ([Product]) -> Void) -> ListenerRegistration {
         db.collection("products").order(by: "name").addSnapshotListener { snapshot, error in
             if let error = error {
@@ -295,6 +300,10 @@ class FirebaseService: ObservableObject {
         }
         data["stockByBranch"] = stockByBranch
         try await docRef.setData(data)
+    }
+
+    func deleteProduct(_ id: String) async throws {
+        try await db.collection("products").document(id).delete()
     }
 
     // MARK: - Sales
@@ -358,6 +367,11 @@ class FirebaseService: ObservableObject {
     }
 
     // MARK: - Customers
+    func getCustomers() async throws -> [Customer] {
+        let snapshot = try await db.collection("customers").order(by: "name").getDocuments()
+        return snapshot.documents.map { Customer.fromFirestore($0.data(), id: $0.documentID) }
+    }
+
     func listenCustomers(completion: @escaping ([Customer]) -> Void) -> ListenerRegistration {
         db.collection("customers").order(by: "name").addSnapshotListener { snapshot, error in
             if let error = error {
@@ -380,7 +394,16 @@ class FirebaseService: ObservableObject {
         ])
     }
 
+    func deleteCustomer(_ id: String) async throws {
+        try await db.collection("customers").document(id).delete()
+    }
+
     // MARK: - Providers
+    func getProviders() async throws -> [Provider] {
+        let snapshot = try await db.collection("providers").order(by: "name").getDocuments()
+        return snapshot.documents.map { Provider.fromFirestore($0.data(), id: $0.documentID) }
+    }
+
     func listenProviders(completion: @escaping ([Provider]) -> Void) -> ListenerRegistration {
         db.collection("providers").order(by: "name").addSnapshotListener { snapshot, error in
             if let error = error {
@@ -399,6 +422,10 @@ class FirebaseService: ObservableObject {
             "name": provider.name, "nit": provider.nit,
             "contact": provider.contact, "phone": provider.phone, "email": provider.email
         ])
+    }
+
+    func deleteProvider(_ id: String) async throws {
+        try await db.collection("providers").document(id).delete()
     }
 
     // MARK: - Purchases
