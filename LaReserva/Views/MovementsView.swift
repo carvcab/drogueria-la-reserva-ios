@@ -253,10 +253,8 @@ struct MovementFormView: View {
                     date: dateStr,
                     productId: prod.id ?? "",
                     productName: prod.name,
-                    pName: prod.name,
                     qty: qty,
-                    description: description,
-                    desc: description
+                    description: description
                 )
                 try? await FirebaseService.shared.saveOwnConsumption(consumption)
             }
