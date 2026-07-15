@@ -130,12 +130,7 @@ jobs:
             WORKSPACE=$(find . -maxdepth 1 -name "*.xcworkspace" | head -1)
           fi
           if [ -z "$SCHEME" ] && [ "$PROJECT_TYPE" = "native" ]; then
-            if [ -n "$WORKSPACE" ]; then
-              SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list 2>/dev/null | grep -A 100 "Schemes:" | tail -n +2 | grep -v -E "^[[:space:]]*Pods-" | head -1 | xargs)
-              [ -z "$SCHEME" ] && SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list 2>/dev/null | grep -A 100 "Schemes:" | tail -n +2 | head -1 | xargs)
-            elif [ -n "$PROJECT" ]; then
-              SCHEME=$(xcodebuild -project "$PROJECT" -list 2>/dev/null | grep -A 100 "Schemes:" | tail -n +2 | head -1 | xargs)
-            fi
+            SCHEME="LaReserva"
           fi
           DERIVED_DATA_PATH="${GITHUB_WORKSPACE}/DerivedData"
           if [ "$PROJECT_TYPE" = "flutter" ]; then
