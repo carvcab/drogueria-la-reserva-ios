@@ -460,6 +460,11 @@ class FirebaseService: ObservableObject {
     }
 
     // MARK: - Withdrawals
+    func getWithdrawals() async throws -> [Withdrawal] {
+        let snapshot = try await db.collection("withdrawals").order(by: "date", descending: true).getDocuments()
+        return snapshot.documents.map { Withdrawal.fromFirestore($0.data(), id: $0.documentID) }
+    }
+
     func listenWithdrawals(completion: @escaping ([Withdrawal]) -> Void) -> ListenerRegistration {
         db.collection("withdrawals").order(by: "date", descending: true).addSnapshotListener { snapshot, error in
             if let error = error {
@@ -528,6 +533,10 @@ class FirebaseService: ObservableObject {
         try await db.collection("cashWithdrawals").document(id).setData([
             "date": item.date, "amount": item.amount, "reason": item.reason
         ])
+    }
+
+    func deleteCashWithdrawal(_ id: String) async throws {
+        try await db.collection("cashWithdrawals").document(id).delete()
     }
 
     func getCashRegister(completion: @escaping (CashRegister) -> Void) -> ListenerRegistration {
