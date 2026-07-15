@@ -488,6 +488,11 @@ class FirebaseService: ObservableObject {
     }
 
     // MARK: - OwnConsumptions
+    func getOwnConsumptions() async throws -> [OwnConsumption] {
+        let snapshot = try await db.collection("ownConsumptions").order(by: "date", descending: true).getDocuments()
+        return snapshot.documents.map { OwnConsumption.fromFirestore($0.data(), id: $0.documentID) }
+    }
+
     func listenOwnConsumptions(completion: @escaping ([OwnConsumption]) -> Void) -> ListenerRegistration {
         db.collection("ownConsumptions").order(by: "date", descending: true).addSnapshotListener { snapshot, error in
             if let error = error {
