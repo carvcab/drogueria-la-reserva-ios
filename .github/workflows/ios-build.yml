@@ -173,8 +173,17 @@ jobs:
             if [ "$PROJECT_TYPE" = "flutter" ]; then
               APP_PATH=$(find "${GITHUB_WORKSPACE}/build/ios/iphoneos" -name "*.app" -type d | head -1)
             else
-              APP_PATH=$(find "$DERIVED_DATA_PATH/Build/Products/${CONFIGURATION}-iphoneos" -name "*.app" -type d | head -1)
+              APP_PATH=$(find "$DERIVED_DATA_PATH/Build/Products/${CONFIGURATION}-iphoneos" -maxdepth 3 -name "*.app" -type d | head -1)
+              if [ -z "$APP_PATH" ]; then
+                APP_PATH=$(find "$DERIVED_DATA_PATH/Build/Products" -name "*.app" -type d | head -1)
+              fi
             fi
+            if [ -z "$APP_PATH" ]; then
+              echo "ERROR: Could not find .app in DerivedData"
+              find "$DERIVED_DATA_PATH" -name "*.app" -type d 2>/dev/null || true
+              exit 1
+            fi
+            echo "App found at: $APP_PATH"
             mkdir -p "${GITHUB_WORKSPACE}/build/Payload"
             cp -R "$APP_PATH" "${GITHUB_WORKSPACE}/build/Payload/"
             cd "${GITHUB_WORKSPACE}/build"
