@@ -291,7 +291,7 @@ struct EditSaleView: View {
 
     private func restoreCustomer() {
         if !originalSale.customerId.isEmpty {
-            selectedCustomer = Customer(id: originalSale.customerId, name: originalSale.customerName, cedula: "", phone: "", address: "", allowCredit: true, creditLimit: 0, balance: nil)
+            selectedCustomer = Customer(id: originalSale.customerId, name: originalSale.customerName, cedula: "", phone: "", address: "", allowCredit: true, creditLimit: 0, balance: 0)
         }
     }
 

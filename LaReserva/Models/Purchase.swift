@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseFirestore
 
 struct PurchaseLine: Codable, Identifiable {
     var id: String { productId }
