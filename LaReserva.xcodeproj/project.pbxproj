@@ -452,7 +452,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 8.7.0;
+				MARKETING_VERSION = 8.7.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.droguerialareserva.mobile;
 				PRODUCT_NAME = LaReserva;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -481,7 +481,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 8.7.0;
+				MARKETING_VERSION = 8.7.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.droguerialareserva.mobile;
 				PRODUCT_NAME = LaReserva;
 				SWIFT_EMIT_LOC_STRINGS = YES;
