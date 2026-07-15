@@ -49,5 +49,7 @@
 	</dict>
 	<key>FirebaseAppDelegateProxyEnabled</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>Esta aplicación requiere acceso a la cámara para escanear los códigos de barras de los medicamentos.</string>
 </dict>
 </plist>

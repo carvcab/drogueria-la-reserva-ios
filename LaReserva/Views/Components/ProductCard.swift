@@ -6,29 +6,59 @@ struct ProductCard: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 4) {
-                Image(systemName: "pill.fill")
-                    .font(.title2)
-                    .foregroundColor(product.isLowStock ? .orange : .blue)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Image(systemName: "pill.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(product.isLowStock ? AppColors.danger : AppColors.primary)
+                        .padding(5)
+                        .background((product.isLowStock ? AppColors.danger : AppColors.primary).opacity(0.1))
+                        .clipShape(Circle())
+                    Spacer()
+                    if product.isLowStock {
+                        Text("Bajo")
+                            .font(.system(size: 7, weight: .black))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(AppColors.danger)
+                            .cornerRadius(4)
+                    }
+                }
+                
                 Text(product.name)
-                    .font(.caption)
+                    .font(.system(size: 11, weight: .bold))
                     .lineLimit(2)
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.primary)
-                Text(Helpers.formatCurrency(product.salePrice))
-                    .font(.caption2)
-                    .bold()
-                    .foregroundColor(.green)
-                if product.isLowStock {
-                    Text("Stock: \(Int(product.quantity))")
-                        .font(.caption2)
-                        .foregroundColor(.red)
+                    .multilineTextAlignment(.leading)
+                    .foregroundColor(AppColors.textPrimary)
+                    .frame(height: 28, alignment: .topLeading)
+                
+                Text(product.category)
+                    .font(.system(size: 8))
+                    .foregroundColor(AppColors.textMuted)
+                    .lineLimit(1)
+                
+                HStack {
+                    Text(Helpers.formatCurrency(product.price))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(AppColors.primary)
+                    Spacer()
+                    Text("\(product.stock) u")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundColor(product.isLowStock ? AppColors.danger : AppColors.textSecondary)
                 }
             }
-            .frame(maxWidth: .infinity)
             .padding(8)
-            .background(Color(.systemGray6))
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill((product.isLowStock ? AppColors.cardPink : AppColors.primaryLight).opacity(0.7))
+                    .background(.ultraThinMaterial)
+            )
             .cornerRadius(10)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke((product.isLowStock ? AppColors.danger : AppColors.primary).opacity(0.1), lineWidth: 1.0)
+            )
         }
     }
 }

@@ -31,8 +31,22 @@
 		A10000000000000000000016 /* LocalDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000016 /* LocalDatabase.swift */; };
 		A10000000000000000000017 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000017 /* Constants.swift */; };
 		A10000000000000000000018 /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000018 /* Helpers.swift */; };
+		A1000000000000000000001D /* CashWithdrawal.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000001D /* CashWithdrawal.swift */; };
+		A1000000000000000000001E /* Closing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000001E /* Closing.swift */; };
+		A1000000000000000000001F /* CustomerTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000001F /* CustomerTransaction.swift */; };
+		A10000000000000000000020 /* Withdrawal.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000020 /* Withdrawal.swift */; };
+		A10000000000000000000021 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000021 /* AppColors.swift */; };
+		A10000000000000000000022 /* AccountingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000022 /* AccountingView.swift */; };
+		A10000000000000000000023 /* MovementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000023 /* MovementsView.swift */; };
+		A10000000000000000000024 /* ReturnsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000024 /* ReturnsView.swift */; };
+		A10000000000000000000025 /* AnimatedBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000025 /* AnimatedBackground.swift */; };
+		A10000000000000000000026 /* BarcodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000026 /* BarcodeScannerView.swift */; };
+		A10000000000000000000027 /* CashWithdrawalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000027 /* CashWithdrawalsView.swift */; };
+		A10000000000000000000028 /* OwnConsumptionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000028 /* OwnConsumptionsView.swift */; };
 		A10000000000000000000019 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000019 /* Assets.xcassets */; };
 		A1000000000000000000001A /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000001A /* GoogleService-Info.plist */; };
+		A10000000000000000000029 /* EditSaleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000029 /* EditSaleView.swift */; };
+		A1000000000000000000002A /* FlexDouble.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000002A /* FlexDouble.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -63,7 +77,21 @@
 		A20000000000000000000019 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A2000000000000000000001A /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = GoogleService-Info.plist; sourceTree = "<group>"; };
 		A2000000000000000000001B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A2000000000000000000001D /* CashWithdrawal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CashWithdrawal.swift; sourceTree = "<group>"; };
+		A2000000000000000000001E /* Closing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Closing.swift; sourceTree = "<group>"; };
+		A2000000000000000000001F /* CustomerTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerTransaction.swift; sourceTree = "<group>"; };
+		A20000000000000000000020 /* Withdrawal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Withdrawal.swift; sourceTree = "<group>"; };
+		A20000000000000000000021 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
+		A20000000000000000000022 /* AccountingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountingView.swift; sourceTree = "<group>"; };
+		A20000000000000000000023 /* MovementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovementsView.swift; sourceTree = "<group>"; };
+		A20000000000000000000024 /* ReturnsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReturnsView.swift; sourceTree = "<group>"; };
+		A20000000000000000000025 /* AnimatedBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedBackground.swift; sourceTree = "<group>"; };
+		A20000000000000000000026 /* BarcodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerView.swift; sourceTree = "<group>"; };
+		A20000000000000000000027 /* CashWithdrawalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CashWithdrawalsView.swift; sourceTree = "<group>"; };
+		A20000000000000000000028 /* OwnConsumptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwnConsumptionsView.swift; sourceTree = "<group>"; };
 		A2000000000000000000001C /* LaReserva.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LaReserva.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000029 /* EditSaleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditSaleView.swift; sourceTree = "<group>"; };
+		A2000000000000000000002A /* FlexDouble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlexDouble.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -117,11 +145,17 @@
 				A20000000000000000000004 /* POSView.swift */,
 				A20000000000000000000005 /* InventoryView.swift */,
 				A20000000000000000000006 /* SalesHistoryView.swift */,
+				A20000000000000000000029 /* EditSaleView.swift */,
 				A20000000000000000000007 /* PurchasesView.swift */,
 				A20000000000000000000008 /* ProvidersView.swift */,
 				A20000000000000000000009 /* CustomersView.swift */,
 				A2000000000000000000000A /* ReportsView.swift */,
 				A2000000000000000000000B /* SettingsView.swift */,
+				A20000000000000000000022 /* AccountingView.swift */,
+				A20000000000000000000023 /* MovementsView.swift */,
+				A20000000000000000000024 /* ReturnsView.swift */,
+				A20000000000000000000027 /* CashWithdrawalsView.swift */,
+				A20000000000000000000028 /* OwnConsumptionsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -135,6 +169,10 @@
 				A20000000000000000000012 /* Customer.swift */,
 				A20000000000000000000013 /* Provider.swift */,
 				A20000000000000000000014 /* InventoryMovement.swift */,
+				A2000000000000000000001D /* CashWithdrawal.swift */,
+				A2000000000000000000001E /* Closing.swift */,
+				A2000000000000000000001F /* CustomerTransaction.swift */,
+				A20000000000000000000020 /* Withdrawal.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -153,6 +191,8 @@
 			children = (
 				A20000000000000000000017 /* Constants.swift */,
 				A20000000000000000000018 /* Helpers.swift */,
+				A20000000000000000000021 /* AppColors.swift */,
+				A2000000000000000000002A /* FlexDouble.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -163,6 +203,8 @@
 				A2000000000000000000000C /* ProductCard.swift */,
 				A2000000000000000000000D /* SaleItemRow.swift */,
 				A2000000000000000000000E /* StatCard.swift */,
+				A20000000000000000000025 /* AnimatedBackground.swift */,
+				A20000000000000000000026 /* BarcodeScannerView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -244,6 +286,7 @@
 				A10000000000000000000004 /* POSView.swift in Sources */,
 				A10000000000000000000005 /* InventoryView.swift in Sources */,
 				A10000000000000000000006 /* SalesHistoryView.swift in Sources */,
+				A10000000000000000000029 /* EditSaleView.swift in Sources */,
 				A10000000000000000000007 /* PurchasesView.swift in Sources */,
 				A10000000000000000000008 /* ProvidersView.swift in Sources */,
 				A10000000000000000000009 /* CustomersView.swift in Sources */,
@@ -262,6 +305,19 @@
 				A10000000000000000000016 /* LocalDatabase.swift in Sources */,
 				A10000000000000000000017 /* Constants.swift in Sources */,
 				A10000000000000000000018 /* Helpers.swift in Sources */,
+				A1000000000000000000001D /* CashWithdrawal.swift in Sources */,
+				A1000000000000000000001E /* Closing.swift in Sources */,
+				A1000000000000000000001F /* CustomerTransaction.swift in Sources */,
+				A10000000000000000000020 /* Withdrawal.swift in Sources */,
+				A10000000000000000000021 /* AppColors.swift in Sources */,
+				A10000000000000000000022 /* AccountingView.swift in Sources */,
+				A10000000000000000000023 /* MovementsView.swift in Sources */,
+				A10000000000000000000024 /* ReturnsView.swift in Sources */,
+				A10000000000000000000025 /* AnimatedBackground.swift in Sources */,
+				A10000000000000000000026 /* BarcodeScannerView.swift in Sources */,
+				A10000000000000000000027 /* CashWithdrawalsView.swift in Sources */,
+				A10000000000000000000028 /* OwnConsumptionsView.swift in Sources */,
+				A1000000000000000000002A /* FlexDouble.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

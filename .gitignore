@@ -1,26 +1,5 @@
-# Xcode
-*.xcuserdata
-*.xcworkspace/xcuserdata
-DerivedData/
 build/
 *.ipa
-*.dSYM.zip
-*.dSYM
-
-# CocoaPods
-Pods/
-*.xcworkspace
-!Podfile
-!Podfile.lock
-
-# Swift Package Manager
-.build/
-Packages/
-*.resolved
-
-# macOS
-.DS_Store
-
-# Builder
-builder.exe
-dist/
+builder-*
+*.txt
+*.log
