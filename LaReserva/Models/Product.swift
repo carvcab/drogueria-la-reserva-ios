@@ -6,7 +6,7 @@ struct BranchStock: Codable, Hashable {
 }
 
 struct Product: Identifiable, Codable, Hashable {
-    @DocumentID var id: String?
+    var id: String?
     var name: String
     var category: String
     var barcode: String?
