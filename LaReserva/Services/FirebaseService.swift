@@ -307,6 +307,11 @@ class FirebaseService: ObservableObject {
     }
 
     // MARK: - Sales
+    func getSales() async throws -> [Sale] {
+        let snapshot = try await db.collection("sales").order(by: "date", descending: true).getDocuments()
+        return snapshot.documents.map { Sale.fromFirestore($0.data(), id: $0.documentID) }
+    }
+
     func listenSales(completion: @escaping ([Sale]) -> Void) -> ListenerRegistration {
         db.collection("sales").order(by: "date", descending: true).addSnapshotListener { snapshot, error in
             if let error = error {
@@ -561,6 +566,11 @@ class FirebaseService: ObservableObject {
     }
 
     // MARK: - Returns
+    func getReturns() async throws -> [Return] {
+        let snapshot = try await db.collection("returns").order(by: "date", descending: true).getDocuments()
+        return snapshot.documents.map { Return.fromFirestore($0.data(), id: $0.documentID) }
+    }
+
     func listenReturns(completion: @escaping ([Return]) -> Void) -> ListenerRegistration {
         db.collection("returns").order(by: "date", descending: true).addSnapshotListener { snapshot, error in
             if let error = error { print("Error Devoluciones: \(error.localizedDescription)") }
