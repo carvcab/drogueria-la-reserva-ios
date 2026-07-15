@@ -46,7 +46,6 @@
 		A10000000000000000000019 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000019 /* Assets.xcassets */; };
 		A1000000000000000000001A /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000001A /* GoogleService-Info.plist */; };
 		A10000000000000000000029 /* EditSaleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000029 /* EditSaleView.swift */; };
-		A1000000000000000000002A /* FlexDouble.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000002A /* FlexDouble.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -91,7 +90,6 @@
 		A20000000000000000000028 /* OwnConsumptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwnConsumptionsView.swift; sourceTree = "<group>"; };
 		A2000000000000000000001C /* LaReserva.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LaReserva.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000029 /* EditSaleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditSaleView.swift; sourceTree = "<group>"; };
-		A2000000000000000000002A /* FlexDouble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlexDouble.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -192,7 +190,6 @@
 				A20000000000000000000017 /* Constants.swift */,
 				A20000000000000000000018 /* Helpers.swift */,
 				A20000000000000000000021 /* AppColors.swift */,
-				A2000000000000000000002A /* FlexDouble.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -317,7 +314,6 @@
 				A10000000000000000000026 /* BarcodeScannerView.swift in Sources */,
 				A10000000000000000000027 /* CashWithdrawalsView.swift in Sources */,
 				A10000000000000000000028 /* OwnConsumptionsView.swift in Sources */,
-				A1000000000000000000002A /* FlexDouble.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

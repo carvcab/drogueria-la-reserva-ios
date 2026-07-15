@@ -3,6 +3,227 @@ import FirebaseFirestore
 import FirebaseStorage
 import FirebaseAuth
 
+private func flexDouble(_ value: Any?) -> Double {
+    if let d = value as? Double { return d }
+    if let i = value as? Int { return Double(i) }
+    if let n = value as? NSNumber { return n.doubleValue }
+    return 0
+}
+
+private func flexInt(_ value: Any?) -> Int {
+    if let i = value as? Int { return i }
+    if let d = value as? Double { return Int(d) }
+    if let n = value as? NSNumber { return n.intValue }
+    return 0
+}
+
+private func flexString(_ value: Any?) -> String {
+    if let s = value as? String { return s }
+    if let n = value as? NSNumber { return n.stringValue }
+    return ""
+}
+
+private func parseStock(_ data: [String: Any]) -> Int {
+    if let branch = data["stockByBranch"] as? [String: Any],
+       let s1 = branch["S1"] as? [String: Any] {
+        return flexInt(s1["totalUnits"])
+    }
+    return flexInt(data["stock"])
+}
+
+// MARK: - Model extensions for manual Firestore parsing
+
+extension Product {
+    static func fromFirestore(_ data: [String: Any], id: String) -> Product {
+        Product(
+            id: id,
+            name: flexString(data["name"]),
+            category: flexString(data["category"]),
+            barcode: data["barcode"] as? String,
+            location: data["location"] as? String,
+            price: flexDouble(data["price"] as Any? ?? data["priceUnit"] as Any?),
+            cost: flexDouble(data["cost"] as Any? ?? data["costUnit"] as Any?),
+            providerName: data["providerName"] as? String,
+            alertThreshold: flexInt(data["alertThreshold"] as Any? ?? 15),
+            stock: parseStock(data)
+        )
+    }
+}
+
+extension Customer {
+    static func fromFirestore(_ data: [String: Any], id: String) -> Customer {
+        Customer(
+            id: id,
+            name: flexString(data["name"]),
+            cedula: flexString(data["cedula"]),
+            phone: flexString(data["phone"]),
+            address: flexString(data["address"]),
+            allowCredit: data["allowCredit"] as? Bool ?? false,
+            creditLimit: flexDouble(data["creditLimit"]),
+            balance: flexDouble(data["balance"])
+        )
+    }
+}
+
+extension Provider {
+    static func fromFirestore(_ data: [String: Any], id: String) -> Provider {
+        Provider(
+            id: id,
+            name: flexString(data["name"]),
+            nit: flexString(data["nit"]),
+            contact: flexString(data["contact"]),
+            phone: flexString(data["phone"]),
+            email: flexString(data["email"])
+        )
+    }
+}
+
+extension Sale {
+    static func fromFirestore(_ data: [String: Any], id: String) -> Sale {
+        let itemsData = data["items"] as? [[String: Any]] ?? []
+        let items: [SaleItem] = itemsData.map { itemData in
+            SaleItem(
+                productId: flexString(itemData["productId"] as Any? ?? itemData["id"] as Any?),
+                name: flexString(itemData["name"]),
+                qty: flexInt(itemData["qty"]),
+                price: flexDouble(itemData["price"]),
+                cost: flexDouble(itemData["cost"] as Any? ?? itemData["profit"] as Any?),
+                paidAmount: flexDouble(itemData["paidAmount"])
+            )
+        }
+        return Sale(
+            id: id,
+            date: flexString(data["date"]),
+            customerId: flexString(data["customerId"]),
+            customerName: flexString(data["customerName"]),
+            payment: flexString(data["payment"] as Any? ?? "efectivo"),
+            subtotal: flexDouble(data["subtotal"]),
+            total: flexDouble(data["total"]),
+            received: flexDouble(data["received"]),
+            change: flexDouble(data["change"]),
+            items: items,
+            returned: data["returned"] as? Bool ?? false
+        )
+    }
+}
+
+extension Purchase {
+    static func fromFirestore(_ data: [String: Any], id: String) -> Purchase {
+        let linesData = data["lines"] as? [[String: Any]] ?? []
+        let lines: [PurchaseLine] = linesData.map { lineData in
+            PurchaseLine(
+                productId: flexString(lineData["productId"] as Any? ?? lineData["id"] as Any?),
+                name: flexString(lineData["name"]),
+                qty: flexInt(lineData["qty"]),
+                cost: flexDouble(lineData["cost"]),
+                salePrice: flexDouble(lineData["salePrice"])
+            )
+        }
+        return Purchase(
+            id: id,
+            date: flexString(data["date"]),
+            providerName: flexString(data["providerName"]),
+            invoiceNo: flexString(data["invoiceNo"]),
+            total: flexDouble(data["total"]),
+            lines: lines
+        )
+    }
+}
+
+extension Withdrawal {
+    static func fromFirestore(_ data: [String: Any], id: String) -> Withdrawal {
+        Withdrawal(
+            id: id,
+            date: flexString(data["date"]),
+            productId: flexString(data["productId"]),
+            productName: flexString(data["pName"] as Any? ?? data["productName"] as Any?),
+            qty: flexInt(data["qty"]),
+            description: flexString(data["description"] as Any? ?? data["desc"] as Any?),
+            destination: flexString(data["destination"])
+        )
+    }
+}
+
+extension OwnConsumption {
+    static func fromFirestore(_ data: [String: Any], id: String) -> OwnConsumption {
+        OwnConsumption(
+            id: id,
+            date: flexString(data["date"]),
+            productId: flexString(data["productId"]),
+            productName: flexString(data["pName"] as Any? ?? data["productName"] as Any?),
+            qty: flexInt(data["qty"]),
+            description: flexString(data["description"] as Any? ?? data["desc"] as Any?)
+        )
+    }
+}
+
+extension Closing {
+    static func fromFirestore(_ data: [String: Any], id: String) -> Closing {
+        Closing(
+            id: id,
+            date: flexString(data["date"]),
+            expected: flexDouble(data["expected"]),
+            actual: flexDouble(data["actual"]),
+            nextBase: flexDouble(data["nextBase"]),
+            sentToHistorical: flexDouble(data["sentToHistorical"]),
+            difference: flexDouble(data["difference"]),
+            status: flexString(data["status"]),
+            notes: flexString(data["notes"])
+        )
+    }
+}
+
+extension CashWithdrawal {
+    static func fromFirestore(_ data: [String: Any], id: String) -> CashWithdrawal {
+        CashWithdrawal(
+            id: id,
+            date: flexString(data["date"]),
+            amount: flexDouble(data["amount"]),
+            reason: flexString(data["reason"])
+        )
+    }
+}
+
+extension Return {
+    static func fromFirestore(_ data: [String: Any], id: String) -> Return {
+        let itemsData = data["items"] as? [[String: Any]] ?? []
+        let items: [SaleItem] = itemsData.map { itemData in
+            SaleItem(
+                productId: flexString(itemData["productId"] as Any? ?? itemData["id"] as Any?),
+                name: flexString(itemData["name"]),
+                qty: flexInt(itemData["qty"]),
+                price: flexDouble(itemData["price"]),
+                cost: flexDouble(itemData["cost"] as Any? ?? itemData["profit"] as Any?),
+                paidAmount: flexDouble(itemData["paidAmount"])
+            )
+        }
+        return Return(
+            id: id,
+            date: flexString(data["date"]),
+            invoiceId: flexString(data["invoiceId"]),
+            items: items,
+            total: flexDouble(data["total"])
+        )
+    }
+}
+
+extension CustomerTransaction {
+    static func fromFirestore(_ data: [String: Any], id: String) -> CustomerTransaction {
+        CustomerTransaction(
+            id: id,
+            customerId: flexString(data["customerId"]),
+            date: flexString(data["date"]),
+            type: flexString(data["type"] as Any? ?? "credit"),
+            amount: flexDouble(data["amount"]),
+            saleId: data["saleId"] as? String,
+            notes: flexString(data["notes"]),
+            method: flexString(data["method"] as Any? ?? "efectivo")
+        )
+    }
+}
+
+// MARK: - FirebaseService
+
 class FirebaseService: ObservableObject {
     static let shared = FirebaseService()
 
@@ -12,9 +233,7 @@ class FirebaseService: ObservableObject {
     @Published var isAuthenticated = false
     @Published var lastError: String?
 
-    private init() {
-        setup()
-    }
+    private init() { setup() }
 
     private func setup() {
         let settings = FirestoreSettings()
@@ -26,16 +245,11 @@ class FirebaseService: ObservableObject {
 
     private func signInAnonymously() {
         if Auth.auth().currentUser == nil {
-            Auth.auth().signInAnonymously { [weak self] result, error in
+            Auth.auth().signInAnonymously { [weak self] _, error in
                 if let error = error {
                     print("Firebase auth error: \(error.localizedDescription)")
-                    DispatchQueue.main.async {
-                        self?.lastError = "Error de Autenticación: \(error.localizedDescription)"
-                    }
-                } else {
-                    self?.isAuthenticated = true
-                    print("Firebase authenticated as: \(result?.user.uid ?? "unknown")")
                 }
+                self?.isAuthenticated = true
             }
         } else {
             isAuthenticated = true
@@ -43,77 +257,74 @@ class FirebaseService: ObservableObject {
     }
 
     // MARK: - Products
-    func getProducts() async throws -> [Product] {
-        let snapshot = try await db.collection("products").order(by: "name").getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: Product.self) }
-    }
-
     func listenProducts(completion: @escaping ([Product]) -> Void) -> ListenerRegistration {
         db.collection("products").order(by: "name").addSnapshotListener { snapshot, error in
             if let error = error {
-                print("Firestore listenProducts error: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    FirebaseService.shared.lastError = "Error Firestore (Productos): \(error.localizedDescription)"
-                }
+                let msg = "Error Productos: \(error.localizedDescription)"
+                print(msg); DispatchQueue.main.async { self.lastError = msg }
             }
             guard let docs = snapshot?.documents else { return }
-            let products = docs.compactMap { try? $0.data(as: Product.self) }
-            DispatchQueue.main.async { completion(products) }
+            let items = docs.map { Product.fromFirestore($0.data(), id: $0.documentID) }
+            DispatchQueue.main.async { completion(items) }
         }
     }
+
     func saveProduct(_ product: Product) async throws {
-        if let id = product.id {
-            let docRef = db.collection("products").document(id)
-            let existingData = (try? await docRef.getDocument())?.data()
-            var productDict = (try? Firestore.Encoder().encode(product)) ?? [:]
-            productDict.removeValue(forKey: "id")
+        guard let id = product.id, !id.isEmpty else { return }
+        let docRef = db.collection("products").document(id)
+        let existing = (try? await docRef.getDocument())?.data()
+        var data: [String: Any] = [
+            "name": product.name,
+            "category": product.category,
+            "price": product.price,
+            "priceUnit": product.price,
+            "cost": product.cost,
+            "costUnit": product.cost,
+            "alertThreshold": product.alertThreshold,
+            "stock": product.stock
+        ]
+        if let b = product.barcode { data["barcode"] = b }
+        if let l = product.location { data["location"] = l }
+        if let p = product.providerName { data["providerName"] = p }
 
-            if let existingStockByBranch = existingData?["stockByBranch"] as? [String: Any] {
-                var mergedStockByBranch = existingStockByBranch
-                mergedStockByBranch["S1"] = ["totalUnits": product.stock]
-                productDict["stockByBranch"] = mergedStockByBranch
-            } else {
-                productDict["stockByBranch"] = ["S1": ["totalUnits": product.stock]]
-            }
-
-            try await docRef.setData(productDict)
-        } else {
-            var productDict = (try? Firestore.Encoder().encode(product)) ?? [:]
-            productDict.removeValue(forKey: "id")
-            productDict["stockByBranch"] = ["S1": ["totalUnits": product.stock]]
-            try await db.collection("products").addDocument(data: productDict)
+        var stockByBranch: [String: Any] = ["S1": ["totalUnits": product.stock]]
+        if let existingBranch = existing?["stockByBranch"] as? [String: Any] {
+            var merged = existingBranch
+            merged["S1"] = ["totalUnits": product.stock]
+            stockByBranch = merged
         }
+        data["stockByBranch"] = stockByBranch
+        try await docRef.setData(data)
     }
 
-    func deleteProduct(_ id: String) async throws {
-        try await db.collection("products").document(id).delete()
-    }
-
-    func getSales() async throws -> [Sale] {
-        let snapshot = try await db.collection("sales").order(by: "date", descending: true).getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: Sale.self) }
-    }
-
+    // MARK: - Sales
     func listenSales(completion: @escaping ([Sale]) -> Void) -> ListenerRegistration {
         db.collection("sales").order(by: "date", descending: true).addSnapshotListener { snapshot, error in
             if let error = error {
-                print("Firestore listenSales error: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    FirebaseService.shared.lastError = "Error Firestore (Ventas): \(error.localizedDescription)"
-                }
+                let msg = "Error Ventas: \(error.localizedDescription)"
+                print(msg); DispatchQueue.main.async { self.lastError = msg }
             }
             guard let docs = snapshot?.documents else { return }
-            let sales = docs.compactMap { try? $0.data(as: Sale.self) }
-            DispatchQueue.main.async { completion(sales) }
+            let items = docs.map { Sale.fromFirestore($0.data(), id: $0.documentID) }
+            DispatchQueue.main.async { completion(items) }
         }
     }
 
     func saveSale(_ sale: Sale) async throws {
-        if let id = sale.id {
-            try db.collection("sales").document(id).setData(from: sale)
-        } else {
-            try db.collection("sales").addDocument(from: sale)
-        }
+        guard let id = sale.id, !id.isEmpty else { return }
+        var data: [String: Any] = [
+            "date": sale.date,
+            "customerId": sale.customerId,
+            "customerName": sale.customerName,
+            "payment": sale.payment,
+            "subtotal": sale.subtotal,
+            "total": sale.total,
+            "received": sale.received,
+            "change": sale.change,
+            "items": sale.items.map { ["productId": $0.productId, "name": $0.name, "qty": $0.qty, "price": $0.price, "cost": $0.cost, "paidAmount": $0.paidAmount] },
+            "returned": sale.returned ?? false
+        ]
+        try await db.collection("sales").document(id).setData(data)
     }
 
     func deleteSale(_ id: String) async throws {
@@ -121,454 +332,259 @@ class FirebaseService: ObservableObject {
     }
 
     func updateSale(_ oldSale: Sale, with newSale: Sale) async throws {
-        // 1. Revert old stock
         for item in oldSale.items {
-            let docRef = db.collection("products").document(item.productId)
-            if let snap = try? await docRef.getDocument(),
-               var product = try? snap.data(as: Product.self) {
-                product.stock += item.qty
-                try? docRef.setData(from: product)
-            }
+            try? await revertStock(item.productId, qty: item.qty, add: false)
         }
-        // 2. Apply new stock
         for item in newSale.items {
-            let docRef = db.collection("products").document(item.productId)
-            if let snap = try? await docRef.getDocument(),
-               var product = try? snap.data(as: Product.self) {
-                product.stock = max(0, product.stock - item.qty)
-                try? docRef.setData(from: product)
-            }
+            try? await revertStock(item.productId, qty: item.qty, add: true)
         }
-        // 3. Handle credit balance changes
-        let wasCredit = oldSale.payment == "fiado" && !oldSale.customerId.isEmpty
-        let isCredit  = newSale.payment == "fiado" && !newSale.customerId.isEmpty
-
-        if wasCredit {
-            let oldRef = db.collection("customers").document(oldSale.customerId)
-            if let snap = try? await oldRef.getDocument(),
-               var cust = try? snap.data(as: Customer.self) {
-                cust.balance = (cust.balance ?? 0.0) - oldSale.total
-                try? oldRef.setData(from: cust)
-            }
+        if oldSale.payment == "fiado", !oldSale.customerId.isEmpty {
+            try? await adjustBalance(oldSale.customerId, amount: -oldSale.total)
         }
-        if isCredit {
-            let newRef = db.collection("customers").document(newSale.customerId)
-            if let snap = try? await newRef.getDocument(),
-               var cust = try? snap.data(as: Customer.self) {
-                cust.balance = (cust.balance ?? 0.0) + newSale.total
-                try? newRef.setData(from: cust)
-            }
+        if newSale.payment == "fiado", !newSale.customerId.isEmpty {
+            try? await adjustBalance(newSale.customerId, amount: newSale.total)
         }
-        if wasCredit, let txId = oldSale.id {
-            // Remove old annulment transaction if it exists, or add a new one indicating edit
-            let df = DateFormatter()
-            df.dateFormat = "yyyy-MM-dd HH:mm:ss"
-            let dateStr = df.string(from: Date())
-            let tx = CustomerTransaction(
-                id: Helpers.generateId(),
-                customerId: isCredit ? newSale.customerId : oldSale.customerId,
-                date: dateStr,
-                type: "adjustment",
-                amount: 0,
-                saleId: txId,
-                notes: "Venta editada — balance recalculado",
-                method: "ajuste"
-            )
-            try? db.collection("customerTransactions").document(tx.id ?? "").setData(from: tx)
-        }
-        // 4. Save updated sale
         try await saveSale(newSale)
     }
 
     func deleteSaleWithReversal(_ sale: Sale) async throws {
-        if sale.returned == true {
-            throw NSError(domain: "FirebaseService", code: 400, userInfo: [NSLocalizedDescriptionKey: "No se puede eliminar una venta devuelta"])
-        }
-        
-        // 1. Revert product stocks
         for item in sale.items {
-            let docId = item.productId
-            if !docId.isEmpty {
-                let docRef = db.collection("products").document(docId)
-                if let snapshot = try? await docRef.getDocument(),
-                   var product = try? snapshot.data(as: Product.self) {
-                    product.stock += item.qty
-                    try? docRef.setData(from: product)
-                }
-            }
+            try? await revertStock(item.productId, qty: item.qty, add: false)
         }
-        
-        // 2. Revert customer balance if credit sale
-        if sale.payment == "fiado" && !sale.customerId.isEmpty {
-            let docRef = db.collection("customers").document(sale.customerId)
-            if let snapshot = try? await docRef.getDocument(),
-               var customer = try? snapshot.data(as: Customer.self) {
-                customer.balance = (customer.balance ?? 0.0) - sale.total
-                try? docRef.setData(from: customer)
-            }
-            
-            // Add annulment transaction
-            let df = DateFormatter()
-            df.dateFormat = "yyyy-MM-dd HH:mm:ss"
-            let dateStr = df.string(from: Date())
-            let tx = CustomerTransaction(
-                id: Helpers.generateId(),
-                customerId: sale.customerId,
-                date: dateStr,
-                type: "payment",
-                amount: sale.total,
-                saleId: sale.id ?? "",
-                notes: "Anulación venta \(sale.id?.prefix(8) ?? "")",
-                method: "ajuste"
-            )
-            try? db.collection("customerTransactions").document(tx.id ?? "").setData(from: tx)
+        if sale.payment == "fiado", !sale.customerId.isEmpty {
+            try? await adjustBalance(sale.customerId, amount: -sale.total)
         }
-        
-        // 3. Delete sale document
-        if let saleId = sale.id {
-            try await deleteSale(saleId)
-        }
+        if let id = sale.id { try await deleteSale(id) }
     }
 
     // MARK: - Customers
-    func getCustomers() async throws -> [Customer] {
-        let snapshot = try await db.collection("customers").order(by: "name").getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: Customer.self) }
-    }
     func listenCustomers(completion: @escaping ([Customer]) -> Void) -> ListenerRegistration {
         db.collection("customers").order(by: "name").addSnapshotListener { snapshot, error in
             if let error = error {
-                print("Firestore listenCustomers error: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    FirebaseService.shared.lastError = "Error Firestore (Clientes): \(error.localizedDescription)"
-                }
+                let msg = "Error Clientes: \(error.localizedDescription)"
+                print(msg); DispatchQueue.main.async { self.lastError = msg }
             }
             guard let docs = snapshot?.documents else { return }
-            let customers = docs.compactMap { try? $0.data(as: Customer.self) }
-            DispatchQueue.main.async { completion(customers) }
+            let items = docs.map { Customer.fromFirestore($0.data(), id: $0.documentID) }
+            DispatchQueue.main.async { completion(items) }
         }
     }
 
     func saveCustomer(_ customer: Customer) async throws {
-        if let id = customer.id {
-            try db.collection("customers").document(id).setData(from: customer)
-        } else {
-            try db.collection("customers").addDocument(from: customer)
-        }
-    }
-
-    func deleteCustomer(_ id: String) async throws {
-        try await db.collection("customers").document(id).delete()
-    }
-
-    // MARK: - Customer Transactions
-    func getCustomerTransactions() async throws -> [CustomerTransaction] {
-        let snapshot = try await db.collection("customerTransactions").order(by: "date", descending: true).getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: CustomerTransaction.self) }
-    }
-
-    func listenCustomerTransactions(completion: @escaping ([CustomerTransaction]) -> Void) -> ListenerRegistration {
-        db.collection("customerTransactions").order(by: "date", descending: true).addSnapshotListener { snapshot, error in
-            if let error = error {
-                print("Firestore listenCustomerTransactions error: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    FirebaseService.shared.lastError = "Error Firestore (Transacciones): \(error.localizedDescription)"
-                }
-            }
-            guard let docs = snapshot?.documents else { return }
-            let txs = docs.compactMap { try? $0.data(as: CustomerTransaction.self) }
-            DispatchQueue.main.async { completion(txs) }
-        }
-    }
-
-    func saveCustomerTransaction(_ transaction: CustomerTransaction) async throws {
-        if let id = transaction.id {
-            try db.collection("customerTransactions").document(id).setData(from: transaction)
-        } else {
-            try db.collection("customerTransactions").addDocument(from: transaction)
-        }
-    }
-
-    func deleteCustomerTransaction(_ id: String) async throws {
-        try await db.collection("customerTransactions").document(id).delete()
+        guard let id = customer.id, !id.isEmpty else { return }
+        try await db.collection("customers").document(id).setData([
+            "name": customer.name, "cedula": customer.cedula,
+            "phone": customer.phone, "address": customer.address,
+            "allowCredit": customer.allowCredit,
+            "creditLimit": customer.creditLimit, "balance": customer.balance
+        ])
     }
 
     // MARK: - Providers
-    func getProviders() async throws -> [Provider] {
-        let snapshot = try await db.collection("providers").order(by: "name").getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: Provider.self) }
-    }
-
     func listenProviders(completion: @escaping ([Provider]) -> Void) -> ListenerRegistration {
         db.collection("providers").order(by: "name").addSnapshotListener { snapshot, error in
             if let error = error {
-                print("Firestore listenProviders error: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    FirebaseService.shared.lastError = "Error Firestore (Proveedores): \(error.localizedDescription)"
-                }
+                let msg = "Error Proveedores: \(error.localizedDescription)"
+                print(msg); DispatchQueue.main.async { self.lastError = msg }
             }
             guard let docs = snapshot?.documents else { return }
-            let providers = docs.compactMap { try? $0.data(as: Provider.self) }
-            DispatchQueue.main.async { completion(providers) }
+            let items = docs.map { Provider.fromFirestore($0.data(), id: $0.documentID) }
+            DispatchQueue.main.async { completion(items) }
         }
     }
 
     func saveProvider(_ provider: Provider) async throws {
-        if let id = provider.id {
-            try db.collection("providers").document(id).setData(from: provider)
-        } else {
-            try db.collection("providers").addDocument(from: provider)
-        }
-    }
-
-    func deleteProvider(_ id: String) async throws {
-        try await db.collection("providers").document(id).delete()
+        guard let id = provider.id, !id.isEmpty else { return }
+        try await db.collection("providers").document(id).setData([
+            "name": provider.name, "nit": provider.nit,
+            "contact": provider.contact, "phone": provider.phone, "email": provider.email
+        ])
     }
 
     // MARK: - Purchases
-    func getPurchases() async throws -> [Purchase] {
-        let snapshot = try await db.collection("purchases").order(by: "date", descending: true).getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: Purchase.self) }
-    }
-
     func listenPurchases(completion: @escaping ([Purchase]) -> Void) -> ListenerRegistration {
-        db.collection("purchases").order(by: "date", descending: true).addSnapshotListener { snapshot, _ in
+        db.collection("purchases").order(by: "date", descending: true).addSnapshotListener { snapshot, error in
+            if let error = error { print("Error Compras: \(error.localizedDescription)") }
             guard let docs = snapshot?.documents else { return }
-            let purchases = docs.compactMap { try? $0.data(as: Purchase.self) }
-            DispatchQueue.main.async { completion(purchases) }
+            let items = docs.map { Purchase.fromFirestore($0.data(), id: $0.documentID) }
+            DispatchQueue.main.async { completion(items) }
         }
     }
 
     func savePurchase(_ purchase: Purchase) async throws {
-        if let id = purchase.id {
-            try db.collection("purchases").document(id).setData(from: purchase)
-        } else {
-            try db.collection("purchases").addDocument(from: purchase)
-        }
-    }
-
-    func deletePurchase(_ id: String) async throws {
-        try await db.collection("purchases").document(id).delete()
+        guard let id = purchase.id, !id.isEmpty else { return }
+        try await db.collection("purchases").document(id).setData([
+            "date": purchase.date, "providerName": purchase.providerName,
+            "invoiceNo": purchase.invoiceNo, "total": purchase.total,
+            "lines": purchase.lines.map { ["productId": $0.productId, "name": $0.name, "qty": $0.qty, "cost": $0.cost, "salePrice": $0.salePrice] }
+        ])
     }
 
     func deletePurchaseWithReversal(_ purchase: Purchase) async throws {
-        // 1. Revert product stock (subtract purchased stock)
         for line in purchase.lines {
-            let docId = line.productId
-            if !docId.isEmpty {
-                let docRef = db.collection("products").document(docId)
-                if let snapshot = try? await docRef.getDocument(),
-                   var product = try? snapshot.data(as: Product.self) {
-                    product.stock = max(0, product.stock - line.qty)
-                    try? docRef.setData(from: product)
-                }
-            }
+            try? await revertStock(line.productId, qty: line.qty, add: true)
         }
-        
-        // 2. Delete purchase document
-        if let id = purchase.id {
-            try await deletePurchase(id)
-        }
+        if let id = purchase.id { try await db.collection("purchases").document(id).delete() }
     }
 
-    // MARK: - Withdrawals & Consumptions
-    func getWithdrawals() async throws -> [Withdrawal] {
-        let snapshot = try await db.collection("withdrawals").order(by: "date", descending: true).getDocuments()
-        return snapshot.documents.compactMap { doc in
-            guard var item = try? doc.data(as: Withdrawal.self) else { return nil }
-            item.id = doc.documentID
-            if item.productName.isEmpty, let p = item.pName { item.productName = p }
-            if item.description.isEmpty, let d = item.desc { item.description = d }
-            return item
-        }
-    }
-
+    // MARK: - Withdrawals
     func listenWithdrawals(completion: @escaping ([Withdrawal]) -> Void) -> ListenerRegistration {
         db.collection("withdrawals").order(by: "date", descending: true).addSnapshotListener { snapshot, error in
             if let error = error {
-                print("Firestore listenWithdrawals error: \(error.localizedDescription)")
-                DispatchQueue.main.async { FirebaseService.shared.lastError = "Error Retiros: \(error.localizedDescription)" }
+                let msg = "Error Retiros: \(error.localizedDescription)"
+                print(msg); DispatchQueue.main.async { self.lastError = msg }
             }
             guard let docs = snapshot?.documents else { return }
-            let items = docs.compactMap { doc in
-                guard var item = try? doc.data(as: Withdrawal.self) else { return nil }
-                item.id = doc.documentID
-                if item.productName.isEmpty, let p = item.pName { item.productName = p }
-                if item.description.isEmpty, let d = item.desc { item.description = d }
-                return item
-            }
-            print("Withdrawals cargados: \(items.count)")
+            let items = docs.map { Withdrawal.fromFirestore($0.data(), id: $0.documentID) }
             DispatchQueue.main.async { completion(items) }
         }
     }
 
     func saveWithdrawal(_ item: Withdrawal) async throws {
-        if let id = item.id {
-            try db.collection("withdrawals").document(id).setData(from: item)
-        } else {
-            try db.collection("withdrawals").addDocument(from: item)
-        }
+        guard let id = item.id, !id.isEmpty else { return }
+        try await db.collection("withdrawals").document(id).setData([
+            "date": item.date, "productId": item.productId,
+            "productName": item.productName, "pName": item.productName,
+            "qty": item.qty, "description": item.description,
+            "desc": item.description, "destination": item.destination
+        ])
     }
 
-    func deleteWithdrawal(_ id: String) async throws {
-        try await db.collection("withdrawals").document(id).delete()
-    }
-
-    func getOwnConsumptions() async throws -> [OwnConsumption] {
-        let snapshot = try await db.collection("ownConsumptions").order(by: "date", descending: true).getDocuments()
-        return snapshot.documents.compactMap { doc in
-            guard var item = try? doc.data(as: OwnConsumption.self) else { return nil }
-            item.id = doc.documentID
-            if item.productName.isEmpty, let p = item.pName { item.productName = p }
-            if item.description.isEmpty, let d = item.desc { item.description = d }
-            return item
-        }
-    }
+    // MARK: - OwnConsumptions
     func listenOwnConsumptions(completion: @escaping ([OwnConsumption]) -> Void) -> ListenerRegistration {
         db.collection("ownConsumptions").order(by: "date", descending: true).addSnapshotListener { snapshot, error in
             if let error = error {
-                print("Firestore listenOwnConsumptions error: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    FirebaseService.shared.lastError = "Error Firestore (Consumos): \(error.localizedDescription)"
-                }
+                let msg = "Error Consumos: \(error.localizedDescription)"
+                print(msg); DispatchQueue.main.async { self.lastError = msg }
             }
             guard let docs = snapshot?.documents else { return }
-            let items = docs.compactMap { doc in
-                guard var item = try? doc.data(as: OwnConsumption.self) else { return nil }
-                item.id = doc.documentID
-                if item.productName.isEmpty, let p = item.pName { item.productName = p }
-                if item.description.isEmpty, let d = item.desc { item.description = d }
-                return item
-            }
+            let items = docs.map { OwnConsumption.fromFirestore($0.data(), id: $0.documentID) }
+            print("Consumos cargados: \(items.count)")
             DispatchQueue.main.async { completion(items) }
         }
     }
 
     func saveOwnConsumption(_ item: OwnConsumption) async throws {
-        if let id = item.id {
-            try db.collection("ownConsumptions").document(id).setData(from: item)
-        } else {
-            try db.collection("ownConsumptions").addDocument(from: item)
-        }
-    }
-
-    func deleteOwnConsumption(_ id: String) async throws {
-        try await db.collection("ownConsumptions").document(id).delete()
+        guard let id = item.id, !id.isEmpty else { return }
+        try await db.collection("ownConsumptions").document(id).setData([
+            "date": item.date, "productId": item.productId,
+            "productName": item.productName, "pName": item.productName,
+            "qty": item.qty, "description": item.description, "desc": item.description
+        ])
     }
 
     func deleteOwnConsumptionWithReversal(_ item: OwnConsumption) async throws {
-        // 1. Revert product stock (add it back)
-        let docId = item.productId
-        if !docId.isEmpty {
-            let docRef = db.collection("products").document(docId)
-            if let snapshot = try? await docRef.getDocument(),
-               var product = try? snapshot.data(as: Product.self) {
-                product.stock += item.qty
-                try? docRef.setData(from: product)
-            }
-        }
-        
-        // 2. Delete own consumption document
-        if let id = item.id {
-            try await deleteOwnConsumption(id)
-        }
+        if !item.productId.isEmpty { try? await revertStock(item.productId, qty: item.qty, add: false) }
+        if let id = item.id { try await db.collection("ownConsumptions").document(id).delete() }
     }
 
-    // MARK: - Cash Register & Cash Withdrawals
-    func getCashRegister(completion: @escaping (CashRegister) -> Void) -> ListenerRegistration {
-        db.collection("cashRegister").document("current").addSnapshotListener { snapshot, _ in
-            if let data = snapshot?.data(), let register = try? snapshot?.data(as: CashRegister.self) {
-                DispatchQueue.main.async { completion(register) }
-            } else {
-                // Return default if empty
-                DispatchQueue.main.async { completion(CashRegister(base: 0.0, currentStatus: "Abierta")) }
-            }
-        }
-    }
-
-    func updateCashRegister(_ register: CashRegister) async throws {
-        try db.collection("cashRegister").document("current").setData(from: register)
-    }
-
-    func getCashWithdrawals() async throws -> [CashWithdrawal] {
-        let snapshot = try await db.collection("cashWithdrawals").order(by: "date", descending: true).getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: CashWithdrawal.self) }
-    }
-
+    // MARK: - Cash Register & CashWithdrawals
     func listenCashWithdrawals(completion: @escaping ([CashWithdrawal]) -> Void) -> ListenerRegistration {
-        db.collection("cashWithdrawals").order(by: "date", descending: true).addSnapshotListener { snapshot, _ in
+        db.collection("cashWithdrawals").order(by: "date", descending: true).addSnapshotListener { snapshot, error in
+            if let error = error {
+                let msg = "Error Retiros Dinero: \(error.localizedDescription)"
+                print(msg); DispatchQueue.main.async { self.lastError = msg }
+            }
             guard let docs = snapshot?.documents else { return }
-            let items = docs.compactMap { try? $0.data(as: CashWithdrawal.self) }
+            let items = docs.map { CashWithdrawal.fromFirestore($0.data(), id: $0.documentID) }
             DispatchQueue.main.async { completion(items) }
         }
     }
 
     func saveCashWithdrawal(_ item: CashWithdrawal) async throws {
-        if let id = item.id {
-            try db.collection("cashWithdrawals").document(id).setData(from: item)
-        } else {
-            try db.collection("cashWithdrawals").addDocument(from: item)
+        guard let id = item.id, !id.isEmpty else { return }
+        try await db.collection("cashWithdrawals").document(id).setData([
+            "date": item.date, "amount": item.amount, "reason": item.reason
+        ])
+    }
+
+    func getCashRegister(completion: @escaping (CashRegister) -> Void) -> ListenerRegistration {
+        db.collection("cashRegister").document("current").addSnapshotListener { snapshot, _ in
+            if let data = snapshot?.data() {
+                completion(CashRegister(base: flexDouble(data["base"]), currentStatus: flexString(data["currentStatus"] as Any? ?? "Abierta")))
+            } else {
+                completion(CashRegister(base: 0, currentStatus: "Abierta"))
+            }
         }
     }
 
-    func deleteCashWithdrawal(_ id: String) async throws {
-        try await db.collection("cashWithdrawals").document(id).delete()
+    func updateCashRegister(_ register: CashRegister) async throws {
+        try await db.collection("cashRegister").document("current").setData([
+            "base": register.base, "currentStatus": register.currentStatus
+        ])
     }
 
     // MARK: - Closings
-    func getClosings() async throws -> [Closing] {
-        let snapshot = try await db.collection("closings").order(by: "date", descending: true).getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: Closing.self) }
-    }
-
     func listenClosings(completion: @escaping ([Closing]) -> Void) -> ListenerRegistration {
-        db.collection("closings").order(by: "date", descending: true).addSnapshotListener { snapshot, _ in
+        db.collection("closings").order(by: "date", descending: true).addSnapshotListener { snapshot, error in
+            if let error = error { print("Error Cierres: \(error.localizedDescription)") }
             guard let docs = snapshot?.documents else { return }
-            let items = docs.compactMap { try? $0.data(as: Closing.self) }
+            let items = docs.map { Closing.fromFirestore($0.data(), id: $0.documentID) }
             DispatchQueue.main.async { completion(items) }
         }
     }
 
     func saveClosing(_ item: Closing) async throws {
-        if let id = item.id {
-            try db.collection("closings").document(id).setData(from: item)
-        } else {
-            try db.collection("closings").addDocument(from: item)
-        }
-    }
-
-    func deleteClosing(_ id: String) async throws {
-        try await db.collection("closings").document(id).delete()
+        guard let id = item.id, !id.isEmpty else { return }
+        try await db.collection("closings").document(id).setData([
+            "date": item.date, "expected": item.expected, "actual": item.actual,
+            "nextBase": item.nextBase, "sentToHistorical": item.sentToHistorical,
+            "difference": item.difference, "status": item.status, "notes": item.notes
+        ])
     }
 
     // MARK: - Returns
-    func getReturns() async throws -> [Return] {
-        let snapshot = try await db.collection("returns").order(by: "date", descending: true).getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: Return.self) }
-    }
-
     func listenReturns(completion: @escaping ([Return]) -> Void) -> ListenerRegistration {
-        db.collection("returns").order(by: "date", descending: true).addSnapshotListener { snapshot, _ in
+        db.collection("returns").order(by: "date", descending: true).addSnapshotListener { snapshot, error in
+            if let error = error { print("Error Devoluciones: \(error.localizedDescription)") }
             guard let docs = snapshot?.documents else { return }
-            let items = docs.compactMap { try? $0.data(as: Return.self) }
+            let items = docs.map { Return.fromFirestore($0.data(), id: $0.documentID) }
             DispatchQueue.main.async { completion(items) }
         }
     }
 
     func saveReturn(_ item: Return) async throws {
-        if let id = item.id {
-            try db.collection("returns").document(id).setData(from: item)
-        } else {
-            try db.collection("returns").addDocument(from: item)
+        guard let id = item.id, !id.isEmpty else { return }
+        try await db.collection("returns").document(id).setData([
+            "date": item.date, "invoiceId": item.invoiceId, "total": item.total,
+            "items": item.items.map { ["productId": $0.productId, "name": $0.name, "qty": $0.qty, "price": $0.price, "cost": $0.cost, "paidAmount": $0.paidAmount] }
+        ])
+    }
+
+    // MARK: - Customer Transactions
+    func listenCustomerTransactions(completion: @escaping ([CustomerTransaction]) -> Void) -> ListenerRegistration {
+        db.collection("customerTransactions").order(by: "date", descending: true).addSnapshotListener { snapshot, error in
+            if let error = error { print("Error Transacciones: \(error.localizedDescription)") }
+            guard let docs = snapshot?.documents else { return }
+            let items = docs.map { CustomerTransaction.fromFirestore($0.data(), id: $0.documentID) }
+            DispatchQueue.main.async { completion(items) }
         }
     }
 
-    func deleteReturn(_ id: String) async throws {
-        try await db.collection("returns").document(id).delete()
+    func saveCustomerTransaction(_ tx: CustomerTransaction) async throws {
+        guard let id = tx.id, !id.isEmpty else { return }
+        try await db.collection("customerTransactions").document(id).setData([
+            "customerId": tx.customerId, "date": tx.date, "type": tx.type,
+            "amount": tx.amount, "saleId": tx.saleId ?? "", "notes": tx.notes, "method": tx.method
+        ])
     }
 
-    // MARK: - Generic
-    func deleteDocument(collection: String, id: String) async throws {
-        try await db.collection(collection).document(id).delete()
+    // MARK: - Helpers
+    private func revertStock(_ productId: String, qty: Int, add: Bool) async throws {
+        guard !productId.isEmpty else { return }
+        let docRef = db.collection("products").document(productId)
+        let existing = (try? await docRef.getDocument())?.data() ?? [:]
+        var product = Product.fromFirestore(existing, id: productId)
+        product.stock = add ? product.stock + qty : max(0, product.stock - qty)
+        try await saveProduct(product)
+    }
+
+    private func adjustBalance(_ customerId: String, amount: Double) async throws {
+        guard !customerId.isEmpty else { return }
+        let docRef = db.collection("customers").document(customerId)
+        let existing = (try? await docRef.getDocument())?.data() ?? [:]
+        var customer = Customer.fromFirestore(existing, id: customerId)
+        customer.balance = max(0, customer.balance + amount)
+        try await saveCustomer(customer)
     }
 }

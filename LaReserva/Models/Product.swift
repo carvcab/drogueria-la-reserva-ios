@@ -1,14 +1,13 @@
 import Foundation
-import FirebaseFirestore
 
-struct Product: Identifiable, Codable, Hashable {
-    @DocumentID var id: String?
+struct Product: Identifiable, Hashable {
+    var id: String?
     var name: String
     var category: String
     var barcode: String?
     var location: String?
-    @FlexDouble var price: Double
-    @FlexDouble var cost: Double
+    var price: Double
+    var cost: Double
     var providerName: String?
     var alertThreshold: Int
     var stock: Int

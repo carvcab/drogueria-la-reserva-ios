@@ -1,14 +1,13 @@
 import Foundation
-import FirebaseFirestore
 
-struct Closing: Identifiable, Codable {
-    @DocumentID var id: String?
+struct Closing: Identifiable {
+    var id: String?
     var date: String
-    @FlexDouble var expected: Double
-    @FlexDouble var actual: Double
-    @FlexDouble var nextBase: Double
-    @FlexDouble var sentToHistorical: Double
-    @FlexDouble var difference: Double
+    var expected: Double
+    var actual: Double
+    var nextBase: Double
+    var sentToHistorical: Double
+    var difference: Double
     var status: String
     var notes: String
 }

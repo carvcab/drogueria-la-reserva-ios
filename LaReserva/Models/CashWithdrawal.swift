@@ -1,14 +1,13 @@
 import Foundation
-import FirebaseFirestore
 
-struct CashWithdrawal: Identifiable, Codable {
-    @DocumentID var id: String?
+struct CashWithdrawal: Identifiable {
+    var id: String?
     var date: String
-    @FlexDouble var amount: Double
+    var amount: Double
     var reason: String
 }
 
-struct CashRegister: Codable {
-    @FlexDouble var base: Double
+struct CashRegister {
+    var base: Double
     var currentStatus: String
 }
