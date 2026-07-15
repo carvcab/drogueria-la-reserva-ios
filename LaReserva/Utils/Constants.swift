@@ -2,7 +2,7 @@ import Foundation
 
 struct AppConstants {
     static let appName = "La Reserva"
-    static let appVersion = "9.9.9"
+    static let appVersion = "8.7.1"
     static let businessName = "Droguería La Reserva"
     static let nit = "800.432.109-1"
     static let location = "Gramalote, N.S."
