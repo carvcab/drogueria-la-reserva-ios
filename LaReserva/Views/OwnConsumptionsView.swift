@@ -251,8 +251,10 @@ struct OwnConsumptionFormView: View {
                 date: dateStr,
                 productId: prod.id ?? "",
                 productName: prod.name,
+                pName: prod.name,
                 qty: qty,
-                description: description
+                description: description,
+                desc: description
             )
             try? await FirebaseService.shared.saveOwnConsumption(consumption)
 

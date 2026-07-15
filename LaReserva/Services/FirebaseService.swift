@@ -45,11 +45,7 @@ class FirebaseService: ObservableObject {
     // MARK: - Products
     func getProducts() async throws -> [Product] {
         let snapshot = try await db.collection("products").order(by: "name").getDocuments()
-        return snapshot.documents.compactMap { doc in
-            guard var p = try? doc.data(as: Product.self) else { return nil }
-            p.id = p.id ?? doc.documentID
-            return p
-        }
+        return snapshot.documents.compactMap { try? $0.data(as: Product.self) }
     }
 
     func listenProducts(completion: @escaping ([Product]) -> Void) -> ListenerRegistration {
@@ -61,11 +57,7 @@ class FirebaseService: ObservableObject {
                 }
             }
             guard let docs = snapshot?.documents else { return }
-            let products = docs.compactMap { doc in
-                guard var p = try? doc.data(as: Product.self) else { return nil }
-                p.id = p.id ?? doc.documentID
-                return p
-            }
+            let products = docs.compactMap { try? $0.data(as: Product.self) }
             DispatchQueue.main.async { completion(products) }
         }
     }
@@ -241,11 +233,7 @@ class FirebaseService: ObservableObject {
     // MARK: - Customers
     func getCustomers() async throws -> [Customer] {
         let snapshot = try await db.collection("customers").order(by: "name").getDocuments()
-        return snapshot.documents.compactMap { doc in
-            guard var c = try? doc.data(as: Customer.self) else { return nil }
-            c.id = c.id ?? doc.documentID
-            return c
-        }
+        return snapshot.documents.compactMap { try? $0.data(as: Customer.self) }
     }
     func listenCustomers(completion: @escaping ([Customer]) -> Void) -> ListenerRegistration {
         db.collection("customers").order(by: "name").addSnapshotListener { snapshot, error in
@@ -256,11 +244,7 @@ class FirebaseService: ObservableObject {
                 }
             }
             guard let docs = snapshot?.documents else { return }
-            let customers = docs.compactMap { doc in
-                guard var c = try? doc.data(as: Customer.self) else { return nil }
-                c.id = c.id ?? doc.documentID
-                return c
-            }
+            let customers = docs.compactMap { try? $0.data(as: Customer.self) }
             DispatchQueue.main.async { completion(customers) }
         }
     }
@@ -312,11 +296,7 @@ class FirebaseService: ObservableObject {
     // MARK: - Providers
     func getProviders() async throws -> [Provider] {
         let snapshot = try await db.collection("providers").order(by: "name").getDocuments()
-        return snapshot.documents.compactMap { doc in
-            guard var p = try? doc.data(as: Provider.self) else { return nil }
-            p.id = p.id ?? doc.documentID
-            return p
-        }
+        return snapshot.documents.compactMap { try? $0.data(as: Provider.self) }
     }
 
     func listenProviders(completion: @escaping ([Provider]) -> Void) -> ListenerRegistration {
@@ -328,11 +308,7 @@ class FirebaseService: ObservableObject {
                 }
             }
             guard let docs = snapshot?.documents else { return }
-            let providers = docs.compactMap { doc in
-                guard var p = try? doc.data(as: Provider.self) else { return nil }
-                p.id = p.id ?? doc.documentID
-                return p
-            }
+            let providers = docs.compactMap { try? $0.data(as: Provider.self) }
             DispatchQueue.main.async { completion(providers) }
         }
     }
@@ -401,6 +377,8 @@ class FirebaseService: ObservableObject {
         return snapshot.documents.compactMap { doc in
             guard var item = try? doc.data(as: Withdrawal.self) else { return nil }
             item.id = doc.documentID
+            if item.productName.isEmpty, let p = item.pName { item.productName = p }
+            if item.description.isEmpty, let d = item.desc { item.description = d }
             return item
         }
     }
@@ -411,6 +389,8 @@ class FirebaseService: ObservableObject {
             let items = docs.compactMap { doc in
                 guard var item = try? doc.data(as: Withdrawal.self) else { return nil }
                 item.id = doc.documentID
+                if item.productName.isEmpty, let p = item.pName { item.productName = p }
+                if item.description.isEmpty, let d = item.desc { item.description = d }
                 return item
             }
             DispatchQueue.main.async { completion(items) }
@@ -434,6 +414,8 @@ class FirebaseService: ObservableObject {
         return snapshot.documents.compactMap { doc in
             guard var item = try? doc.data(as: OwnConsumption.self) else { return nil }
             item.id = doc.documentID
+            if item.productName.isEmpty, let p = item.pName { item.productName = p }
+            if item.description.isEmpty, let d = item.desc { item.description = d }
             return item
         }
     }
@@ -449,6 +431,8 @@ class FirebaseService: ObservableObject {
             let items = docs.compactMap { doc in
                 guard var item = try? doc.data(as: OwnConsumption.self) else { return nil }
                 item.id = doc.documentID
+                if item.productName.isEmpty, let p = item.pName { item.productName = p }
+                if item.description.isEmpty, let d = item.desc { item.description = d }
                 return item
             }
             DispatchQueue.main.async { completion(items) }
