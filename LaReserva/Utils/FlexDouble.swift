@@ -9,7 +9,12 @@ struct FlexDouble: Codable, Hashable {
     }
 
     init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
+        guard let container = try? decoder.singleValueContainer() else {
+            wrappedValue = 0; return
+        }
+        if (try? container.decodeNil()) == true {
+            wrappedValue = 0; return
+        }
         if let d = try? container.decode(Double.self) {
             wrappedValue = d
         } else if let i = try? container.decode(Int.self) {

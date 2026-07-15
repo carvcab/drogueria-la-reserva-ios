@@ -384,7 +384,11 @@ class FirebaseService: ObservableObject {
     }
 
     func listenWithdrawals(completion: @escaping ([Withdrawal]) -> Void) -> ListenerRegistration {
-        db.collection("withdrawals").order(by: "date", descending: true).addSnapshotListener { snapshot, _ in
+        db.collection("withdrawals").order(by: "date", descending: true).addSnapshotListener { snapshot, error in
+            if let error = error {
+                print("Firestore listenWithdrawals error: \(error.localizedDescription)")
+                DispatchQueue.main.async { FirebaseService.shared.lastError = "Error Retiros: \(error.localizedDescription)" }
+            }
             guard let docs = snapshot?.documents else { return }
             let items = docs.compactMap { doc in
                 guard var item = try? doc.data(as: Withdrawal.self) else { return nil }
@@ -393,6 +397,7 @@ class FirebaseService: ObservableObject {
                 if item.description.isEmpty, let d = item.desc { item.description = d }
                 return item
             }
+            print("Withdrawals cargados: \(items.count)")
             DispatchQueue.main.async { completion(items) }
         }
     }
