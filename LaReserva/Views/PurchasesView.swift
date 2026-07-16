@@ -211,6 +211,8 @@ struct PurchaseFormView: View {
     @State private var lineCost = 0.0
     @State private var linePrice = 0.0
     @State private var showScanner = false
+    @State private var showProductPicker = false
+    @State private var productSearchQuery = ""
 
     var purchaseTotal: Double {
         purchaseLines.reduce(0.0) { $0 + ($1.cost * Double($1.qty)) }
@@ -311,10 +313,26 @@ struct PurchaseFormView: View {
                 }
 
                 Section("Seleccione Medicamento") {
-                    Picker("Producto", selection: $selectedProduct) {
-                        Text("Seleccione producto").tag(nil as Product?)
-                        ForEach(products) { p in
-                            Text(p.name).tag(p as Product?)
+                    Button(action: { showProductPicker = true }) {
+                        HStack {
+                            if let prod = selectedProduct {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(prod.name)
+                                        .font(.subheadline)
+                                        .bold()
+                                        .foregroundColor(AppColors.textPrimary)
+                                    Text("Stock: \(prod.stock) u")
+                                        .font(.caption)
+                                        .foregroundColor(AppColors.textMuted)
+                                }
+                            } else {
+                                Text("Toca para buscar y seleccionar producto...")
+                                    .foregroundColor(AppColors.textMuted)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(AppColors.textMuted)
                         }
                     }
                 }
@@ -368,6 +386,7 @@ struct PurchaseFormView: View {
                     BarcodeScannerView(isPresented: $showScanner) { code in
                         if let matched = products.first(where: { $0.barcode == code }) {
                             selectedProduct = matched
+                            productSearchQuery = matched.name
                         }
                     }
                     .navigationTitle("Escanear Código de Barras")
@@ -378,6 +397,14 @@ struct PurchaseFormView: View {
                         }
                     }
                 }
+            }
+            .sheet(isPresented: $showProductPicker) {
+                ProductSearchPicker(
+                    products: products,
+                    searchQuery: $productSearchQuery,
+                    selectedProduct: $selectedProduct,
+                    isPresented: $showProductPicker
+                )
             }
             .onAppear {
                 lineQty = 1

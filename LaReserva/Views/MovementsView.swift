@@ -4,26 +4,67 @@ struct MovementsView: View {
     @State private var withdrawals: [Withdrawal] = []
     @State private var ownConsumptions: [OwnConsumption] = []
     @State private var products: [Product] = []
-    @State private var showAddMovement = false
-    @State private var selectedSegment = 0 // 0: Retiros, 1: Autoconsumo
+    @State private var showForm = false
+    @State private var editingWithdrawal: Withdrawal? = nil
+    @State private var editingConsumption: OwnConsumption? = nil
+    @State private var selectedSegment = 0
+    @State private var searchText = ""
+
+    private var showAddMovement: Binding<Bool> {
+        Binding(
+            get: { editingWithdrawal == nil && editingConsumption == nil && showForm },
+            set: { newValue in
+                if newValue {
+                    editingWithdrawal = nil
+                    editingConsumption = nil
+                    showForm = true
+                } else {
+                    showForm = false
+                }
+            }
+        )
+    }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(AppColors.textMuted)
+                    TextField("Buscar movimiento…", text: $searchText)
+                        .textFieldStyle(.plain)
+                    if !searchText.isEmpty {
+                        Button(action: { searchText = "" }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(AppColors.textMuted)
+                        }
+                    }
+                }
+                .padding(10)
+                .background(Color(.systemBackground).opacity(0.85))
+                .cornerRadius(8)
+                .padding()
+
                 Picker("Tipo", selection: $selectedSegment) {
                     Text("Retiros de Bodega").tag(0)
                     Text("Autoconsumo").tag(1)
                 }
                 .pickerStyle(.segmented)
-                .padding()
+                .padding(.horizontal)
+                .padding(.bottom, 12)
 
-                // List
                 if selectedSegment == 0 {
-                    if withdrawals.isEmpty {
+                    let filtered = withdrawals.filter {
+                        searchText.isEmpty ||
+                        $0.productName.localizedCaseInsensitiveContains(searchText) ||
+                        $0.destination.localizedCaseInsensitiveContains(searchText) ||
+                        $0.description.localizedCaseInsensitiveContains(searchText)
+                    }
+                    if filtered.isEmpty {
                         emptyView(title: "No hay retiros registrados", systemImage: "arrow.down.right.and.arrow.up.left")
                     } else {
                         List {
-                            ForEach(withdrawals) { item in
+                            ForEach(filtered) { item in
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack {
                                         Text(item.productName)
@@ -35,7 +76,7 @@ struct MovementsView: View {
                                             .bold()
                                             .foregroundColor(AppColors.danger)
                                     }
-                                    
+
                                     HStack {
                                         Label(item.destination.uppercased(), systemImage: "tag.fill")
                                             .font(.caption2)
@@ -44,31 +85,68 @@ struct MovementsView: View {
                                             .background(AppColors.danger.opacity(0.1))
                                             .foregroundColor(AppColors.danger)
                                             .cornerRadius(4)
-                                        
+
                                         if !item.description.isEmpty {
                                             Text(item.description)
                                                 .font(.caption)
                                                 .foregroundColor(AppColors.textSecondary)
                                         }
-                                        
+
                                         Spacer()
-                                        
+
                                         Text(item.date.prefix(16))
                                             .font(.caption2)
                                             .foregroundColor(AppColors.textMuted)
                                     }
                                 }
                                 .padding(.vertical, 4)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    editingWithdrawal = item
+                                    editingConsumption = nil
+                                    showForm = true
+                                }
+                                .swipeActions(edge: .leading) {
+                                    Button {
+                                        editingWithdrawal = item
+                                        editingConsumption = nil
+                                        showForm = true
+                                    } label: {
+                                        Label("Editar", systemImage: "pencil")
+                                    }
+                                    .tint(.blue)
+                                }
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        Task {
+                                            if let p = products.first(where: { $0.id == item.productId }) {
+                                                var updated = p
+                                                updated.stock = p.stock + item.qty
+                                                try? await FirebaseService.shared.saveProduct(updated)
+                                            }
+                                            try? await FirebaseService.shared.deleteWithdrawal(item.id ?? "")
+                                            loadData()
+                                        }
+                                    } label: {
+                                        Label("Eliminar", systemImage: "trash")
+                                    }
+                                }
                             }
                         }
                         .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
                     }
                 } else {
-                    if ownConsumptions.isEmpty {
+                    let filtered = ownConsumptions.filter {
+                        searchText.isEmpty ||
+                        $0.productName.localizedCaseInsensitiveContains(searchText) ||
+                        $0.description.localizedCaseInsensitiveContains(searchText)
+                    }
+                    if filtered.isEmpty {
                         emptyView(title: "No hay consumos propios", systemImage: "person.fill.checkmark")
                     } else {
                         List {
-                            ForEach(ownConsumptions) { item in
+                            ForEach(filtered) { item in
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack {
                                         Text(item.productName)
@@ -80,25 +158,52 @@ struct MovementsView: View {
                                             .bold()
                                             .foregroundColor(AppColors.info)
                                     }
-                                    
+
                                     HStack {
                                         if !item.description.isEmpty {
                                             Text(item.description)
                                                 .font(.caption)
                                                 .foregroundColor(AppColors.textSecondary)
                                         }
-                                        
+
                                         Spacer()
-                                        
+
                                         Text(item.date.prefix(16))
                                             .font(.caption2)
                                             .foregroundColor(AppColors.textMuted)
                                     }
                                 }
                                 .padding(.vertical, 4)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    editingConsumption = item
+                                    editingWithdrawal = nil
+                                    showForm = true
+                                }
+                                .swipeActions(edge: .leading) {
+                                    Button {
+                                        editingConsumption = item
+                                        editingWithdrawal = nil
+                                        showForm = true
+                                    } label: {
+                                        Label("Editar", systemImage: "pencil")
+                                    }
+                                    .tint(.blue)
+                                }
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        Task {
+                                            try? await FirebaseService.shared.deleteOwnConsumptionWithReversal(item)
+                                            loadData()
+                                        }
+                                    } label: {
+                                        Label("Eliminar", systemImage: "trash")
+                                    }
+                                }
                             }
                         }
                         .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
                     }
                 }
             }
@@ -107,14 +212,28 @@ struct MovementsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: { showAddMovement = true }) {
+                    Button(action: {
+                        editingWithdrawal = nil
+                        editingConsumption = nil
+                        showForm = true
+                    }) {
                         Image(systemName: "plus")
                             .foregroundColor(AppColors.primary)
                     }
                 }
             }
-            .sheet(isPresented: $showAddMovement) {
-                MovementFormView(products: products, onSave: loadData)
+            .sheet(isPresented: $showForm) {
+                MovementFormView(
+                    products: products,
+                    existingWithdrawal: editingWithdrawal,
+                    existingConsumption: editingConsumption,
+                    onSave: {
+                        editingWithdrawal = nil
+                        editingConsumption = nil
+                        showForm = false
+                        loadData()
+                    }
+                )
             }
         }
         .onAppear {
@@ -153,13 +272,19 @@ struct MovementsView: View {
 struct MovementFormView: View {
     @Environment(\.dismiss) var dismiss
     let products: [Product]
+    let existingWithdrawal: Withdrawal?
+    let existingConsumption: OwnConsumption?
     let onSave: () -> Void
 
+    @State private var searchQuery = ""
     @State private var selectedProduct: Product?
-    @State private var type = "retiro" // "retiro" or "consumo"
+    @State private var type = "retiro"
     @State private var qty = 1
     @State private var description = ""
-    @State private var destination = "Vencido" // Only for "retiro"
+    @State private var destination = "Vencido"
+    @State private var showProductPicker = false
+
+    private var isEditing: Bool { existingWithdrawal != nil || existingConsumption != nil }
 
     let destinations = ["Vencido", "Dañado", "Devolución Proveedor", "Ajuste de Inventario", "Otro"]
 
@@ -172,21 +297,39 @@ struct MovementFormView: View {
                         Text("Consumo Propio").tag("consumo")
                     }
                     .pickerStyle(.segmented)
+                    .disabled(isEditing)
                 }
 
                 Section("Seleccione Producto") {
-                    Picker("Producto", selection: $selectedProduct) {
-                        Text("Seleccione producto").tag(nil as Product?)
-                        ForEach(products) { p in
-                            Text("\(p.name) (Stock: \(p.stock) u)").tag(p as Product?)
+                    Button(action: { showProductPicker = true }) {
+                        HStack {
+                            if let prod = selectedProduct {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(prod.name)
+                                        .font(.subheadline)
+                                        .bold()
+                                        .foregroundColor(AppColors.textPrimary)
+                                    Text("Stock: \(prod.stock) u")
+                                        .font(.caption)
+                                        .foregroundColor(AppColors.textMuted)
+                                }
+                            } else {
+                                Text("Toca para buscar y seleccionar producto...")
+                                    .foregroundColor(AppColors.textMuted)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(AppColors.textMuted)
                         }
                     }
                 }
 
-                if let prod = selectedProduct {
+                if let prod = selectedProduct ?? getExistingProduct() {
                     Section("Detalles de Ajuste") {
-                        Stepper("Cantidad a Retirar: \(qty)", value: $qty, in: 1...prod.stock)
-                        
+                        let maxQty = prod.stock + (getExistingQty() ?? 0)
+                        Stepper("Cantidad: \(qty)", value: $qty, in: 1...max(1, maxQty))
+
                         if type == "retiro" {
                             Picker("Motivo de Retiro", selection: $destination) {
                                 ForEach(destinations, id: \.self) { d in
@@ -194,71 +337,158 @@ struct MovementFormView: View {
                                 }
                             }
                         }
-                        
+
                         TextField("Descripción o justificación", text: $description)
                     }
 
                     Section {
                         Button(action: saveMovement) {
-                            Text("Confirmar Ajuste")
+                            Text(isEditing ? "Actualizar Movimiento (Recalcular)" : "Confirmar Ajuste")
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(AppColors.primaryGradient)
+                                .background(isEditing ? Color.blue.gradient : AppColors.primaryGradient)
                                 .cornerRadius(12)
                         }
                         .listRowInsets(EdgeInsets())
                     }
                 }
             }
-            .navigationTitle("Registrar Movimiento")
+            .navigationTitle(isEditing ? "Editar / Recalcular Movimiento" : "Registrar Movimiento")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancelar") { dismiss() }
                 }
             }
+            .sheet(isPresented: $showProductPicker) {
+                ProductSearchPicker(
+                    products: products,
+                    searchQuery: $searchQuery,
+                    selectedProduct: $selectedProduct,
+                    isPresented: $showProductPicker
+                )
+            }
+        }
+        .onAppear {
+            if let w = existingWithdrawal {
+                type = "retiro"
+                selectedProduct = products.first(where: { $0.id == w.productId || $0.name == w.productName })
+                qty = w.qty
+                description = w.description
+                destination = w.destination
+            } else if let c = existingConsumption {
+                type = "consumo"
+                selectedProduct = products.first(where: { $0.id == c.productId || $0.name == c.productName })
+                qty = c.qty
+                description = c.description
+            }
         }
     }
 
+    private func getExistingProduct() -> Product? {
+        if let w = existingWithdrawal {
+            return products.first(where: { $0.id == w.productId || $0.name == w.productName })
+        }
+        if let c = existingConsumption {
+            return products.first(where: { $0.id == c.productId || $0.name == c.productName })
+        }
+        return nil
+    }
+
+    private func getExistingQty() -> Int? {
+        existingWithdrawal?.qty ?? existingConsumption?.qty
+    }
+
     private func saveMovement() {
-        guard let prod = selectedProduct else { return }
-        
+        let prod: Product?
+        if let sp = selectedProduct {
+            prod = sp
+        } else if let w = existingWithdrawal {
+            prod = products.first(where: { $0.id == w.productId || $0.name == w.productName })
+        } else if let c = existingConsumption {
+            prod = products.first(where: { $0.id == c.productId || $0.name == c.productName })
+        } else {
+            prod = nil
+        }
+
+        guard let prod = prod else { return }
+
         let df = DateFormatter()
         df.dateFormat = "yyyy-MM-dd HH:mm:ss"
         let dateStr = df.string(from: Date())
-        
+
         Task {
-            // 1. Deduct stock from product
-            var updatedProduct = prod
-            updatedProduct.stock = max(0, prod.stock - qty)
-            try? await FirebaseService.shared.saveProduct(updatedProduct)
-            
-            // 2. Save movement record
-            if type == "retiro" {
-                let withdrawal = Withdrawal(
-                    id: Helpers.generateId(),
-                    date: dateStr,
-                    productId: prod.id ?? "",
-                    productName: prod.name,
-                    qty: qty,
-                    description: description,
-                    destination: destination
-                )
-                try? await FirebaseService.shared.saveWithdrawal(withdrawal)
+            if let exW = existingWithdrawal {
+                // EDIT withdrawal: reverse old stock
+                if let oldProd = products.first(where: { $0.id == exW.productId || $0.name == exW.productName }) {
+                    var oldP = oldProd
+                    oldP.stock = oldProd.stock + exW.qty
+                    try? await FirebaseService.shared.saveProduct(oldP)
+                }
+
+                var p = prod
+                p.stock = max(0, prod.stock - qty)
+                try? await FirebaseService.shared.saveProduct(p)
+
+                var updated = exW
+                updated.date = dateStr
+                updated.productId = prod.id ?? exW.productId
+                updated.productName = prod.name
+                updated.qty = qty
+                updated.description = description
+                updated.destination = destination
+                try? await FirebaseService.shared.saveWithdrawal(updated)
+            } else if let exC = existingConsumption {
+                // EDIT consumption: reverse old stock
+                if let oldProd = products.first(where: { $0.id == exC.productId || $0.name == exC.productName }) {
+                    var oldP = oldProd
+                    oldP.stock = oldProd.stock + exC.qty
+                    try? await FirebaseService.shared.saveProduct(oldP)
+                }
+
+                var p = prod
+                p.stock = max(0, prod.stock - qty)
+                try? await FirebaseService.shared.saveProduct(p)
+
+                var updated = exC
+                updated.date = dateStr
+                updated.productId = prod.id ?? exC.productId
+                updated.productName = prod.name
+                updated.qty = qty
+                updated.description = description
+                try? await FirebaseService.shared.saveOwnConsumption(updated)
             } else {
-                let consumption = OwnConsumption(
-                    id: Helpers.generateId(),
-                    date: dateStr,
-                    productId: prod.id ?? "",
-                    productName: prod.name,
-                    qty: qty,
-                    description: description
-                )
-                try? await FirebaseService.shared.saveOwnConsumption(consumption)
+                // NEW movement
+                var updatedProduct = prod
+                updatedProduct.stock = max(0, prod.stock - qty)
+                try? await FirebaseService.shared.saveProduct(updatedProduct)
+
+                if type == "retiro" {
+                    let withdrawal = Withdrawal(
+                        id: Helpers.generateId(),
+                        date: dateStr,
+                        productId: prod.id ?? "",
+                        productName: prod.name,
+                        qty: qty,
+                        description: description,
+                        destination: destination
+                    )
+                    try? await FirebaseService.shared.saveWithdrawal(withdrawal)
+                } else {
+                    let consumption = OwnConsumption(
+                        id: Helpers.generateId(),
+                        date: dateStr,
+                        productId: prod.id ?? "",
+                        productName: prod.name,
+                        qty: qty,
+                        description: description
+                    )
+                    try? await FirebaseService.shared.saveOwnConsumption(consumption)
+                }
             }
-            
+
             await MainActor.run {
                 onSave()
                 dismiss()

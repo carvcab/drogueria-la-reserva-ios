@@ -4,9 +4,11 @@ import FirebaseFirestore
 struct OwnConsumptionsView: View {
     @State private var ownConsumptions: [OwnConsumption] = []
     @State private var products: [Product] = []
-    @State private var showAddConsumption = false
     @State private var searchText = ""
-    
+
+    @State private var showForm = false
+    @State private var editingConsumption: OwnConsumption? = nil
+
     @State private var ownConsumptionsListener: ListenerRegistration?
     @State private var productsListener: ListenerRegistration?
 
@@ -26,7 +28,6 @@ struct OwnConsumptionsView: View {
         NavigationStack {
             AnimatedBackground(showParticles: true) {
                 VStack(spacing: 0) {
-                    // Search bar
                     HStack {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(AppColors.textMuted)
@@ -38,7 +39,6 @@ struct OwnConsumptionsView: View {
                     .cornerRadius(8)
                     .padding()
 
-                    // Stat Cards
                     HStack(spacing: 12) {
                         StatCard(
                             title: "Unidades Consumidas",
@@ -58,7 +58,6 @@ struct OwnConsumptionsView: View {
                     .padding(.horizontal)
                     .padding(.bottom, 12)
 
-                    // Consumptions List
                     if filteredConsumptions.isEmpty {
                         VStack(spacing: 12) {
                             Spacer()
@@ -85,7 +84,7 @@ struct OwnConsumptionsView: View {
                                             .font(.subheadline)
                                             .bold()
                                             .foregroundColor(AppColors.textPrimary)
-                                        
+
                                         if !item.description.isEmpty {
                                             Text(item.description)
                                                 .font(.caption)
@@ -110,13 +109,28 @@ struct OwnConsumptionsView: View {
                                         .foregroundColor(AppColors.info)
                                 }
                                 .padding(.vertical, 4)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    editingConsumption = item
+                                    showForm = true
+                                }
                                 .listRowBackground(Color.white.opacity(0.85))
-                            }
-                            .onDelete { indexSet in
-                                for index in indexSet {
-                                    let item = filteredConsumptions[index]
-                                    Task {
-                                        try? await FirebaseService.shared.deleteOwnConsumptionWithReversal(item)
+                                .swipeActions(edge: .leading) {
+                                    Button {
+                                        editingConsumption = item
+                                        showForm = true
+                                    } label: {
+                                        Label("Editar", systemImage: "pencil")
+                                    }
+                                    .tint(.blue)
+                                }
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        Task {
+                                            try? await FirebaseService.shared.deleteOwnConsumptionWithReversal(item)
+                                        }
+                                    } label: {
+                                        Label("Eliminar", systemImage: "trash")
                                     }
                                 }
                             }
@@ -131,14 +145,21 @@ struct OwnConsumptionsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: { showAddConsumption = true }) {
+                    Button(action: {
+                        editingConsumption = nil
+                        showForm = true
+                    }) {
                         Image(systemName: "plus")
                             .foregroundColor(AppColors.primary)
                     }
                 }
             }
-            .sheet(isPresented: $showAddConsumption) {
-                OwnConsumptionFormView(products: products, onSave: {})
+            .sheet(isPresented: $showForm) {
+                OwnConsumptionFormView(
+                    products: products,
+                    existing: editingConsumption,
+                    onSave: { showForm = false }
+                )
             }
         }
         .onAppear {
@@ -159,12 +180,25 @@ struct OwnConsumptionsView: View {
 struct OwnConsumptionFormView: View {
     @Environment(\.dismiss) var dismiss
     let products: [Product]
+    let existing: OwnConsumption?
     let onSave: () -> Void
 
+    @State private var searchQuery = ""
     @State private var selectedProduct: Product?
     @State private var qty = 1
     @State private var description = ""
     @State private var showScanner = false
+    @State private var showProductPicker = false
+
+    private var isEditing: Bool { existing != nil }
+
+    private var filteredProducts: [Product] {
+        if searchQuery.isEmpty { return products }
+        return products.filter {
+            $0.name.localizedCaseInsensitiveContains(searchQuery) ||
+            ($0.barcode ?? "").localizedCaseInsensitiveContains(searchQuery)
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -178,35 +212,51 @@ struct OwnConsumptionFormView: View {
                 }
 
                 Section("Seleccione Medicamento") {
-                    Picker("Producto", selection: $selectedProduct) {
-                        Text("Seleccione producto").tag(nil as Product?)
-                        ForEach(products) { p in
-                            Text("\(p.name) (Stock: \(p.stock) u)").tag(p as Product?)
+                    Button(action: { showProductPicker = true }) {
+                        HStack {
+                            if let prod = selectedProduct {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(prod.name)
+                                        .font(.subheadline)
+                                        .bold()
+                                        .foregroundColor(AppColors.textPrimary)
+                                    Text("Stock: \(prod.stock) u")
+                                        .font(.caption)
+                                        .foregroundColor(AppColors.textMuted)
+                                }
+                            } else {
+                                Text("Toca para buscar y seleccionar producto...")
+                                    .foregroundColor(AppColors.textMuted)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(AppColors.textMuted)
                         }
                     }
                 }
 
-                if let prod = selectedProduct {
+                if let prod = selectedProduct ?? existing.flatMap({ ex in products.first(where: { $0.id == ex.productId || $0.name == ex.productName }) }) {
                     Section("Detalles del Autoconsumo") {
-                        Stepper("Cantidad: \(qty)", value: $qty, in: 1...max(1, prod.stock))
+                        Stepper("Cantidad: \(qty)", value: $qty, in: 1...max(1, prod.stock + (existing?.qty ?? 0)))
                         TextField("Motivo / Justificación del autoconsumo", text: $description)
                     }
 
                     Section {
                         Button(action: saveConsumption) {
-                            Text("Registrar Consumo Propio")
+                            Text(isEditing ? "Actualizar Consumo (Recalcular)" : "Registrar Consumo Propio")
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(AppColors.primaryGradient)
+                                .background(isEditing ? Color.blue.gradient : AppColors.primaryGradient)
                                 .cornerRadius(12)
                         }
                         .listRowInsets(EdgeInsets())
                     }
                 }
             }
-            .navigationTitle("Registrar Consumo")
+            .navigationTitle(isEditing ? "Editar / Recalcular Consumo" : "Registrar Consumo")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -218,6 +268,7 @@ struct OwnConsumptionFormView: View {
                     BarcodeScannerView(isPresented: $showScanner) { code in
                         if let matched = products.first(where: { $0.barcode == code }) {
                             selectedProduct = matched
+                            searchQuery = matched.name
                         }
                     }
                     .navigationTitle("Escanear Código de Barras")
@@ -229,36 +280,159 @@ struct OwnConsumptionFormView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showProductPicker) {
+                ProductSearchPicker(
+                    products: products,
+                    searchQuery: $searchQuery,
+                    selectedProduct: $selectedProduct,
+                    isPresented: $showProductPicker
+                )
+            }
+        }
+        .onAppear {
+            if let ex = existing {
+                selectedProduct = products.first(where: { $0.id == ex.productId || $0.name == ex.productName })
+                qty = ex.qty
+                description = ex.description
+            }
         }
     }
 
     private func saveConsumption() {
-        guard let prod = selectedProduct else { return }
+        let prod: Product?
+        if let sp = selectedProduct {
+            prod = sp
+        } else if let ex = existing {
+            prod = products.first(where: { $0.id == ex.productId || $0.name == ex.productName })
+        } else {
+            prod = nil
+        }
+
+        guard let prod = prod else { return }
 
         let df = DateFormatter()
         df.dateFormat = "yyyy-MM-dd HH:mm:ss"
         let dateStr = df.string(from: Date())
 
         Task {
-            // 1. Deduct product stock
-            var p = prod
-            p.stock = max(0, prod.stock - qty)
-            try? await FirebaseService.shared.saveProduct(p)
+            if let ex = existing {
+                if let oldProd = products.first(where: { $0.id == ex.productId || $0.name == ex.productName }) {
+                    var oldP = oldProd
+                    oldP.stock = oldProd.stock + ex.qty
+                    try? await FirebaseService.shared.saveProduct(oldP)
+                }
 
-            // 2. Save own consumption record
-            let consumption = OwnConsumption(
-                id: Helpers.generateId(),
-                date: dateStr,
-                productId: prod.id ?? "",
-                productName: prod.name,
-                qty: qty,
-                description: description
-            )
-            try? await FirebaseService.shared.saveOwnConsumption(consumption)
+                var p = prod
+                p.stock = max(0, prod.stock - qty)
+                try? await FirebaseService.shared.saveProduct(p)
+
+                var updated = ex
+                updated.date = dateStr
+                updated.productId = prod.id ?? ex.productId
+                updated.productName = prod.name
+                updated.qty = qty
+                updated.description = description
+                try? await FirebaseService.shared.saveOwnConsumption(updated)
+            } else {
+                var p = prod
+                p.stock = max(0, prod.stock - qty)
+                try? await FirebaseService.shared.saveProduct(p)
+
+                let consumption = OwnConsumption(
+                    id: Helpers.generateId(),
+                    date: dateStr,
+                    productId: prod.id ?? "",
+                    productName: prod.name,
+                    qty: qty,
+                    description: description
+                )
+                try? await FirebaseService.shared.saveOwnConsumption(consumption)
+            }
 
             await MainActor.run {
                 onSave()
                 dismiss()
+            }
+        }
+    }
+}
+
+// MARK: - Product Search Picker (Reusable)
+
+struct ProductSearchPicker: View {
+    let products: [Product]
+    @Binding var searchQuery: String
+    @Binding var selectedProduct: Product?
+    @Binding var isPresented: Bool
+
+    private var filteredProducts: [Product] {
+        if searchQuery.isEmpty { return products }
+        return products.filter {
+            $0.name.localizedCaseInsensitiveContains(searchQuery) ||
+            ($0.barcode ?? "").localizedCaseInsensitiveContains(searchQuery)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(AppColors.textMuted)
+                    TextField("Buscar producto por nombre o código...", text: $searchQuery)
+                        .textFieldStyle(.plain)
+                    if !searchQuery.isEmpty {
+                        Button(action: { searchQuery = "" }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(AppColors.textMuted)
+                        }
+                    }
+                }
+                .padding(10)
+                .background(Color(.systemBackground))
+                .padding()
+
+                if filteredProducts.isEmpty {
+                    Spacer()
+                    Text("No se encontraron productos")
+                        .foregroundColor(AppColors.textMuted)
+                    Spacer()
+                } else {
+                    List {
+                        ForEach(filteredProducts) { prod in
+                            Button(action: {
+                                selectedProduct = prod
+                                isPresented = false
+                            }) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(prod.name)
+                                            .font(.subheadline)
+                                            .bold()
+                                            .foregroundColor(AppColors.textPrimary)
+                                        Text("Stock: \(prod.stock) u | \(prod.category ?? "")")
+                                            .font(.caption)
+                                            .foregroundColor(AppColors.textMuted)
+                                    }
+                                    Spacer()
+                                    if selectedProduct?.id == prod.id {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(AppColors.primary)
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                    }
+                    .listStyle(.plain)
+                }
+            }
+            .navigationTitle("Seleccionar Producto")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancelar") { isPresented = false }
+                }
             }
         }
     }
