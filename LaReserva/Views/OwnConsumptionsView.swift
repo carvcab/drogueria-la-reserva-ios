@@ -5,6 +5,7 @@ struct OwnConsumptionsView: View {
     @State private var ownConsumptions: [OwnConsumption] = []
     @State private var products: [Product] = []
     @State private var searchText = ""
+    @State private var isLoading = true
 
     @State private var showForm = false
     @State private var editingConsumption: OwnConsumption? = nil
@@ -58,7 +59,12 @@ struct OwnConsumptionsView: View {
                     .padding(.horizontal)
                     .padding(.bottom, 12)
 
-                    if filteredConsumptions.isEmpty {
+                    if isLoading && ownConsumptions.isEmpty && products.isEmpty {
+                        Spacer()
+                        ProgressView("Conectando con la base de datos...")
+                            .foregroundColor(AppColors.textMuted)
+                        Spacer()
+                    } else if filteredConsumptions.isEmpty {
                         VStack(spacing: 12) {
                             Spacer()
                             Image(systemName: "person.fill.badge.minus")
@@ -162,17 +168,33 @@ struct OwnConsumptionsView: View {
                 )
             }
         }
-        .onAppear {
-            ownConsumptionsListener = FirebaseService.shared.listenOwnConsumptions { list in
-                self.ownConsumptions = list
-            }
-            productsListener = FirebaseService.shared.listenProducts { list in
-                self.products = list
-            }
+        .task {
+            await loadAll()
         }
         .onDisappear {
             ownConsumptionsListener?.remove()
             productsListener?.remove()
+        }
+    }
+
+    private func loadAll() async {
+        isLoading = true
+        do {
+            if let prods = try? await FirebaseService.shared.getProducts() {
+                await MainActor.run { self.products = prods }
+            }
+            if let cons = try? await FirebaseService.shared.getOwnConsumptions() {
+                await MainActor.run { self.ownConsumptions = cons }
+            }
+        }
+        await MainActor.run { isLoading = false }
+
+        // Set up realtime listeners after initial load
+        ownConsumptionsListener = FirebaseService.shared.listenOwnConsumptions { list in
+            self.ownConsumptions = list
+        }
+        productsListener = FirebaseService.shared.listenProducts { list in
+            self.products = list
         }
     }
 }
@@ -188,12 +210,18 @@ struct OwnConsumptionFormView: View {
     @State private var qty = 1
     @State private var description = ""
     @State private var showScanner = false
+    @State private var localProducts: [Product] = []
+    @State private var isLoadingProducts = false
 
     private var isEditing: Bool { existing != nil }
 
+    private var displayProducts: [Product] {
+        localProducts.isEmpty ? products : localProducts
+    }
+
     private var filteredProducts: [Product] {
-        if searchQuery.isEmpty { return products }
-        return products.filter {
+        if searchQuery.isEmpty { return displayProducts }
+        return displayProducts.filter {
             $0.name.localizedCaseInsensitiveContains(searchQuery) ||
             ($0.barcode ?? "").localizedCaseInsensitiveContains(searchQuery)
         }
@@ -216,6 +244,7 @@ struct OwnConsumptionFormView: View {
                             .foregroundColor(AppColors.textMuted)
                         TextField("Escribir nombre del producto...", text: $searchQuery)
                             .textFieldStyle(.plain)
+                            .disabled(isLoadingProducts)
                         if !searchQuery.isEmpty {
                             Button(action: { searchQuery = "" }) {
                                 Image(systemName: "xmark.circle.fill")
@@ -225,16 +254,25 @@ struct OwnConsumptionFormView: View {
                     }
                 }
 
-                if selectedProduct == nil {
+                if isLoadingProducts {
+                    Section {
+                        HStack {
+                            Spacer()
+                            ProgressView("Obteniendo productos...")
+                            Spacer()
+                        }
+                    }
+                } else if selectedProduct == nil {
                     Section {
                         if filteredProducts.isEmpty {
                             HStack {
                                 Spacer()
                                 VStack(spacing: 8) {
                                     if searchQuery.isEmpty {
-                                        Text("Cargando productos...")
+                                        Text("No se encontraron productos en la base de datos")
                                             .foregroundColor(AppColors.textMuted)
                                             .font(.caption)
+                                            .multilineTextAlignment(.center)
                                     } else {
                                         Text("Sin resultados para \"\(searchQuery)\"")
                                             .foregroundColor(AppColors.textMuted)
@@ -268,7 +306,7 @@ struct OwnConsumptionFormView: View {
                             }
                         }
                     } header: {
-                        Text(searchQuery.isEmpty ? "Todos los productos (\(products.count))" : "Resultados: \(filteredProducts.count)")
+                        Text(searchQuery.isEmpty ? "Todos los productos (\(displayProducts.count))" : "Resultados: \(filteredProducts.count)")
                     }
                 }
 
@@ -294,7 +332,7 @@ struct OwnConsumptionFormView: View {
                     }
                 }
 
-                if let prod = selectedProduct ?? existing.flatMap({ ex in products.first(where: { $0.id == ex.productId || $0.name == ex.productName }) }) {
+                if let prod = selectedProduct ?? existing.flatMap({ ex in displayProducts.first(where: { $0.id == ex.productId || $0.name == ex.productName }) }) {
                     Section("Detalles del Autoconsumo") {
                         Stepper("Cantidad: \(qty)", value: $qty, in: 1...max(1, prod.stock + (existing?.qty ?? 0)))
                         TextField("Motivo / Justificación del autoconsumo", text: $description)
@@ -324,7 +362,7 @@ struct OwnConsumptionFormView: View {
             .sheet(isPresented: $showScanner) {
                 NavigationStack {
                     BarcodeScannerView(isPresented: $showScanner) { code in
-                        if let matched = products.first(where: { $0.barcode == code }) {
+                        if let matched = displayProducts.first(where: { $0.barcode == code }) {
                             selectedProduct = matched
                             searchQuery = matched.name
                         }
@@ -339,9 +377,24 @@ struct OwnConsumptionFormView: View {
                 }
             }
         }
+        .task {
+            if products.isEmpty {
+                isLoadingProducts = true
+                do {
+                    let prods = try await FirebaseService.shared.getProducts()
+                    await MainActor.run {
+                        localProducts = prods
+                        isLoadingProducts = false
+                    }
+                } catch {
+                    await MainActor.run { isLoadingProducts = false }
+                }
+            }
+        }
         .onAppear {
             if let ex = existing {
-                selectedProduct = products.first(where: { $0.id == ex.productId || $0.name == ex.productName })
+                let allProducts = products.isEmpty ? localProducts : products
+                selectedProduct = allProducts.first(where: { $0.id == ex.productId || $0.name == ex.productName })
                 qty = ex.qty
                 description = ex.description
             }
@@ -353,7 +406,8 @@ struct OwnConsumptionFormView: View {
         if let sp = selectedProduct {
             prod = sp
         } else if let ex = existing {
-            prod = products.first(where: { $0.id == ex.productId || $0.name == ex.productName })
+            let allProducts = products.isEmpty ? localProducts : products
+            prod = allProducts.first(where: { $0.id == ex.productId || $0.name == ex.productName })
         } else {
             prod = nil
         }
@@ -366,7 +420,8 @@ struct OwnConsumptionFormView: View {
 
         Task {
             if let ex = existing {
-                if let oldProd = products.first(where: { $0.id == ex.productId || $0.name == ex.productName }) {
+                let allProducts = products.isEmpty ? localProducts : products
+                if let oldProd = allProducts.first(where: { $0.id == ex.productId || $0.name == ex.productName }) {
                     var oldP = oldProd
                     oldP.stock = oldProd.stock + ex.qty
                     try? await FirebaseService.shared.saveProduct(oldP)
