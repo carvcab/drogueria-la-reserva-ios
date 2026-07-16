@@ -381,7 +381,7 @@ struct MovementFormView: View {
                                     .foregroundColor(AppColors.textPrimary)
                                 Text("Stock disponible: \(prod.stock) u")
                                     .font(.caption)
-                                    .foregroundColor(prod.stock > 0 ? AppColors.success : AppColors.danger)
+                                    .foregroundColor(prod.stock > 0 ? AppColors.primary : AppColors.danger)
                             }
                             Spacer()
                             Button(action: { selectedProduct = nil; searchQuery = "" }) {
