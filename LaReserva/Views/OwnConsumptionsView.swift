@@ -188,7 +188,6 @@ struct OwnConsumptionFormView: View {
     @State private var qty = 1
     @State private var description = ""
     @State private var showScanner = false
-    @State private var showProductPicker = false
 
     private var isEditing: Bool { existing != nil }
 
@@ -211,27 +210,86 @@ struct OwnConsumptionFormView: View {
                     }
                 }
 
-                Section("Seleccione Medicamento") {
-                    Button(action: { showProductPicker = true }) {
-                        HStack {
-                            if let prod = selectedProduct {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(prod.name)
-                                        .font(.subheadline)
-                                        .bold()
-                                        .foregroundColor(AppColors.textPrimary)
-                                    Text("Stock: \(prod.stock) u")
-                                        .font(.caption)
-                                        .foregroundColor(AppColors.textMuted)
-                                }
-                            } else {
-                                Text("Toca para buscar y seleccionar producto...")
+                Section("Buscar Medicamento") {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(AppColors.textMuted)
+                        TextField("Escribir nombre del producto...", text: $searchQuery)
+                            .textFieldStyle(.plain)
+                        if !searchQuery.isEmpty {
+                            Button(action: { searchQuery = "" }) {
+                                Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(AppColors.textMuted)
                             }
+                        }
+                    }
+                }
+
+                if selectedProduct == nil {
+                    Section {
+                        if filteredProducts.isEmpty {
+                            HStack {
+                                Spacer()
+                                VStack(spacing: 8) {
+                                    if searchQuery.isEmpty {
+                                        Text("Cargando productos...")
+                                            .foregroundColor(AppColors.textMuted)
+                                            .font(.caption)
+                                    } else {
+                                        Text("Sin resultados para \"\(searchQuery)\"")
+                                            .foregroundColor(AppColors.textMuted)
+                                            .font(.caption)
+                                    }
+                                }
+                                Spacer()
+                            }
+                        } else {
+                            ForEach(Array(filteredProducts.prefix(20).enumerated()), id: \.element.id) { _, prod in
+                                Button(action: {
+                                    selectedProduct = prod
+                                    searchQuery = prod.name
+                                }) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(prod.name)
+                                                .font(.subheadline)
+                                                .bold()
+                                                .foregroundColor(AppColors.textPrimary)
+                                            Text("Stock: \(prod.stock) u | \(prod.category.isEmpty ? "-" : prod.category)")
+                                                .font(.caption)
+                                                .foregroundColor(AppColors.textMuted)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "plus.circle")
+                                            .foregroundColor(AppColors.primary)
+                                    }
+                                    .padding(.vertical, 2)
+                                }
+                            }
+                        }
+                    } header: {
+                        Text(searchQuery.isEmpty ? "Todos los productos (\(products.count))" : "Resultados: \(filteredProducts.count)")
+                    }
+                }
+
+                if let prod = selectedProduct {
+                    Section("Producto Seleccionado") {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(prod.name)
+                                    .font(.subheadline)
+                                    .bold()
+                                    .foregroundColor(AppColors.textPrimary)
+                                Text("Stock disponible: \(prod.stock) u")
+                                    .font(.caption)
+                                    .foregroundColor(prod.stock > 0 ? AppColors.success : AppColors.danger)
+                            }
                             Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(AppColors.textMuted)
+                            Button(action: { selectedProduct = nil; searchQuery = "" }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(AppColors.textMuted)
+                                    .font(.title3)
+                            }
                         }
                     }
                 }
@@ -279,14 +337,6 @@ struct OwnConsumptionFormView: View {
                         }
                     }
                 }
-            }
-            .sheet(isPresented: $showProductPicker) {
-                ProductSearchPicker(
-                    products: products,
-                    searchQuery: $searchQuery,
-                    selectedProduct: $selectedProduct,
-                    isPresented: $showProductPicker
-                )
             }
         }
         .onAppear {
@@ -352,87 +402,6 @@ struct OwnConsumptionFormView: View {
             await MainActor.run {
                 onSave()
                 dismiss()
-            }
-        }
-    }
-}
-
-// MARK: - Product Search Picker (Reusable)
-
-struct ProductSearchPicker: View {
-    let products: [Product]
-    @Binding var searchQuery: String
-    @Binding var selectedProduct: Product?
-    @Binding var isPresented: Bool
-
-    private var filteredProducts: [Product] {
-        if searchQuery.isEmpty { return products }
-        return products.filter {
-            $0.name.localizedCaseInsensitiveContains(searchQuery) ||
-            ($0.barcode ?? "").localizedCaseInsensitiveContains(searchQuery)
-        }
-    }
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(AppColors.textMuted)
-                    TextField("Buscar producto por nombre o código...", text: $searchQuery)
-                        .textFieldStyle(.plain)
-                    if !searchQuery.isEmpty {
-                        Button(action: { searchQuery = "" }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(AppColors.textMuted)
-                        }
-                    }
-                }
-                .padding(10)
-                .background(Color(.systemBackground))
-                .padding()
-
-                if filteredProducts.isEmpty {
-                    Spacer()
-                    Text("No se encontraron productos")
-                        .foregroundColor(AppColors.textMuted)
-                    Spacer()
-                } else {
-                    List {
-                        ForEach(filteredProducts) { prod in
-                            Button(action: {
-                                selectedProduct = prod
-                                isPresented = false
-                            }) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(prod.name)
-                                            .font(.subheadline)
-                                            .bold()
-                                            .foregroundColor(AppColors.textPrimary)
-                                        Text("Stock: \(prod.stock) u | \(prod.category ?? "")")
-                                            .font(.caption)
-                                            .foregroundColor(AppColors.textMuted)
-                                    }
-                                    Spacer()
-                                    if selectedProduct?.id == prod.id {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(AppColors.primary)
-                                    }
-                                }
-                                .padding(.vertical, 4)
-                            }
-                        }
-                    }
-                    .listStyle(.plain)
-                }
-            }
-            .navigationTitle("Seleccionar Producto")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancelar") { isPresented = false }
-                }
             }
         }
     }
