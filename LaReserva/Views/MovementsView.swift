@@ -284,12 +284,18 @@ struct MovementFormView: View {
     @State private var qty = 1
     @State private var description = ""
     @State private var destination = "Vencido"
+    @State private var localProducts: [Product] = []
+    @State private var isLoadingProducts = false
 
     private var isEditing: Bool { existingWithdrawal != nil || existingConsumption != nil }
 
+    private var displayProducts: [Product] {
+        localProducts.isEmpty ? products : localProducts
+    }
+
     private var filteredProducts: [Product] {
-        if searchQuery.isEmpty { return products }
-        return products.filter {
+        if searchQuery.isEmpty { return displayProducts }
+        return displayProducts.filter {
             $0.name.localizedCaseInsensitiveContains(searchQuery) ||
             ($0.barcode ?? "").localizedCaseInsensitiveContains(searchQuery)
         }
@@ -431,16 +437,31 @@ struct MovementFormView: View {
                 }
             }
         }
+        .task {
+            if products.isEmpty {
+                isLoadingProducts = true
+                do {
+                    let prods = try await FirebaseService.shared.getProducts()
+                    await MainActor.run {
+                        localProducts = prods
+                        isLoadingProducts = false
+                    }
+                } catch {
+                    await MainActor.run { isLoadingProducts = false }
+                }
+            }
+        }
         .onAppear {
+            let prods = products.isEmpty ? localProducts : products
             if let w = existingWithdrawal {
                 type = "retiro"
-                selectedProduct = products.first(where: { $0.id == w.productId || $0.name == w.productName })
+                selectedProduct = prods.first(where: { $0.id == w.productId || $0.name == w.productName })
                 qty = w.qty
                 description = w.description
                 destination = w.destination
             } else if let c = existingConsumption {
                 type = "consumo"
-                selectedProduct = products.first(where: { $0.id == c.productId || $0.name == c.productName })
+                selectedProduct = prods.first(where: { $0.id == c.productId || $0.name == c.productName })
                 qty = c.qty
                 description = c.description
             }
@@ -448,11 +469,12 @@ struct MovementFormView: View {
     }
 
     private func getExistingProduct() -> Product? {
+        let prods = products.isEmpty ? localProducts : products
         if let w = existingWithdrawal {
-            return products.first(where: { $0.id == w.productId || $0.name == w.productName })
+            return prods.first(where: { $0.id == w.productId || $0.name == w.productName })
         }
         if let c = existingConsumption {
-            return products.first(where: { $0.id == c.productId || $0.name == c.productName })
+            return prods.first(where: { $0.id == c.productId || $0.name == c.productName })
         }
         return nil
     }
