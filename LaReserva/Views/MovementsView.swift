@@ -350,7 +350,7 @@ struct MovementFormView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(isEditing ? AnyGradient(Color.blue.gradient) : AnyGradient(AppColors.primaryGradient))
+                                .background(isEditing ? Color.blue : AppColors.primary)
                                 .cornerRadius(12)
                         }
                         .listRowInsets(EdgeInsets())

@@ -487,6 +487,10 @@ class FirebaseService: ObservableObject {
         ])
     }
 
+    func deleteWithdrawal(_ id: String) async throws {
+        try await db.collection("withdrawals").document(id).delete()
+    }
+
     // MARK: - OwnConsumptions
     func getOwnConsumptions() async throws -> [OwnConsumption] {
         let snapshot = try await db.collection("ownConsumptions").order(by: "date", descending: true).getDocuments()
