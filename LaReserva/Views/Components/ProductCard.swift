@@ -10,12 +10,20 @@ struct ProductCard: View {
                 HStack {
                     Image(systemName: "pill.fill")
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(product.isLowStock ? AppColors.danger : AppColors.primary)
+                        .foregroundColor(product.isOutOfStock ? AppColors.textMuted : (product.isLowStock ? AppColors.danger : AppColors.primary))
                         .padding(5)
-                        .background((product.isLowStock ? AppColors.danger : AppColors.primary).opacity(0.1))
+                        .background((product.isOutOfStock ? AppColors.textMuted : (product.isLowStock ? AppColors.danger : AppColors.primary)).opacity(0.1))
                         .clipShape(Circle())
                     Spacer()
-                    if product.isLowStock {
+                    if product.isOutOfStock {
+                        Text("Agotado")
+                            .font(.system(size: 7, weight: .black))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(AppColors.danger)
+                            .cornerRadius(4)
+                    } else if product.isLowStock {
                         Text("Bajo")
                             .font(.system(size: 7, weight: .black))
                             .foregroundColor(.white)
@@ -45,20 +53,22 @@ struct ProductCard: View {
                     Spacer()
                     Text("\(product.stock) u")
                         .font(.system(size: 9, weight: .semibold))
-                        .foregroundColor(product.isLowStock ? AppColors.danger : AppColors.textSecondary)
+                        .foregroundColor(product.isOutOfStock ? AppColors.danger : (product.isLowStock ? AppColors.danger : AppColors.textSecondary))
                 }
             }
             .padding(8)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill((product.isLowStock ? AppColors.cardPink : AppColors.primaryLight).opacity(0.7))
+                    .fill(product.isOutOfStock ? Color.gray.opacity(0.2) : (product.isLowStock ? AppColors.cardPink : AppColors.primaryLight).opacity(0.7))
                     .background(.ultraThinMaterial)
             )
             .cornerRadius(10)
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke((product.isLowStock ? AppColors.danger : AppColors.primary).opacity(0.1), lineWidth: 1.0)
+                    .stroke((product.isOutOfStock ? Color.gray : (product.isLowStock ? AppColors.danger : AppColors.primary)).opacity(0.1), lineWidth: 1.0)
             )
         }
+        .opacity(product.isOutOfStock ? 0.5 : 1.0)
+        .disabled(product.isOutOfStock)
     }
 }

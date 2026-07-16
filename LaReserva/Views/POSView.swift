@@ -88,7 +88,61 @@ struct POSView: View {
 
                     // Cart Summary (Floating Panel)
                     if !cartItems.isEmpty {
-                        VStack(spacing: 8) {
+                        VStack(spacing: 0) {
+                            Divider()
+
+                            ScrollView {
+                                VStack(spacing: 6) {
+                                    ForEach(cartItems) { item in
+                                        HStack(spacing: 8) {
+                                            Button(action: { removeFromCart(item.product) }) {
+                                                Image(systemName: "minus.circle.fill")
+                                                    .font(.title3)
+                                                    .foregroundColor(AppColors.danger)
+                                            }
+                                            .buttonStyle(ScaleButtonStyle())
+
+                                            Text("\(item.quantity)")
+                                                .font(.subheadline)
+                                                .bold()
+                                                .frame(minWidth: 24)
+                                                .multilineTextAlignment(.center)
+
+                                            Button(action: { addToCart(item.product) }) {
+                                                Image(systemName: "plus.circle.fill")
+                                                    .font(.title3)
+                                                    .foregroundColor(AppColors.primary)
+                                            }
+                                            .buttonStyle(ScaleButtonStyle())
+                                            .disabled(item.quantity >= item.product.stock)
+
+                                            VStack(alignment: .leading, spacing: 1) {
+                                                Text(item.product.name)
+                                                    .font(.subheadline)
+                                                    .bold()
+                                                    .lineLimit(1)
+                                                Text(Helpers.formatCurrency(item.product.price * Double(item.quantity)))
+                                                    .font(.caption)
+                                                    .foregroundColor(AppColors.textSecondary)
+                                            }
+
+                                            Spacer()
+
+                                            Button(action: { removeAllFromCart(item.product) }) {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .font(.title3)
+                                                    .foregroundColor(AppColors.textMuted)
+                                            }
+                                            .buttonStyle(ScaleButtonStyle())
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 4)
+                                    }
+                                }
+                                .padding(.vertical, 6)
+                            }
+                            .frame(maxHeight: 150)
+
                             Divider()
 
                             HStack {
@@ -102,6 +156,7 @@ struct POSView: View {
                                     .foregroundColor(AppColors.primary)
                             }
                             .padding(.horizontal)
+                            .padding(.vertical, 6)
 
                             Button(action: {
                                 receivedAmountText = ""
@@ -175,14 +230,49 @@ struct POSView: View {
                                 Text(item.product.name)
                                     .font(.subheadline)
                                     .bold()
+                                    .lineLimit(1)
                                 Text("\(item.quantity) x \(Helpers.formatCurrency(item.product.price))")
                                     .font(.caption)
                                     .foregroundColor(AppColors.textSecondary)
                             }
                             Spacer()
-                            Text(Helpers.formatCurrency(item.product.price * Double(item.quantity)))
-                                .font(.subheadline)
-                                .bold()
+                            HStack(spacing: 4) {
+                                Button {
+                                    removeFromCart(item.product)
+                                } label: {
+                                    Image(systemName: "minus.circle.fill")
+                                        .font(.title3)
+                                        .foregroundColor(AppColors.danger)
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+
+                                Text("\(item.quantity)")
+                                    .font(.subheadline)
+                                    .bold()
+                                    .frame(minWidth: 20)
+
+                                Button {
+                                    addToCart(item.product)
+                                } label: {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.title3)
+                                        .foregroundColor(AppColors.primary)
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                                .disabled(item.quantity >= item.product.stock)
+
+                                Text(Helpers.formatCurrency(item.product.price * Double(item.quantity)))
+                                    .font(.subheadline)
+                                    .bold()
+                                    .frame(minWidth: 70, alignment: .trailing)
+                            }
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                removeAllFromCart(item.product)
+                            } label: {
+                                Label("Quitar", systemImage: "trash")
+                            }
                         }
                     }
                     HStack {
@@ -267,7 +357,9 @@ struct POSView: View {
     }
 
     private func addToCart(_ product: Product) {
+        guard product.stock > 0 else { return }
         if let index = cartItems.firstIndex(where: { $0.product.id == product.id }) {
+            guard cartItems[index].quantity < product.stock else { return }
             cartItems[index].quantity += 1
         } else {
             cartItems.append(CartItem(product: product, quantity: 1))
@@ -284,7 +376,31 @@ struct POSView: View {
         }
     }
 
+    private func removeAllFromCart(_ product: Product) {
+        cartItems.removeAll { $0.product.id == product.id }
+    }
+
+    private func setCartQuantity(_ product: Product, quantity: Int) {
+        guard quantity > 0 else {
+            removeAllFromCart(product)
+            return
+        }
+        guard quantity <= product.stock else { return }
+        if let index = cartItems.firstIndex(where: { $0.product.id == product.id }) {
+            cartItems[index].quantity = quantity
+        } else {
+            cartItems.append(CartItem(product: product, quantity: quantity))
+        }
+    }
+
     private func completeSale() {
+        // Verify stock availability before proceeding
+        for item in cartItems {
+            guard item.quantity <= item.product.stock else {
+                return
+            }
+        }
+
         let df = DateFormatter()
         df.dateFormat = "yyyy-MM-dd HH:mm:ss"
         let dateStr = df.string(from: Date())
