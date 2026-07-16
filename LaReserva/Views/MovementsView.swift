@@ -118,15 +118,7 @@ struct MovementsView: View {
                                 }
                                 .swipeActions(edge: .trailing) {
                                     Button(role: .destructive) {
-                                        Task {
-                                            if let p = products.first(where: { $0.id == item.productId }) {
-                                                var updated = p
-                                                updated.stock = p.stock + item.qty
-                                                try? await FirebaseService.shared.saveProduct(updated)
-                                            }
-                                            try? await FirebaseService.shared.deleteWithdrawal(item.id ?? "")
-                                            loadData()
-                                        }
+                                        Task { await deleteWithdrawal(item) }
                                     } label: {
                                         Label("Eliminar", systemImage: "trash")
                                     }
@@ -241,6 +233,16 @@ struct MovementsView: View {
         }
     }
 
+    private func deleteWithdrawal(_ item: Withdrawal) async {
+        if let p = products.first(where: { $0.id == item.productId }) {
+            var updated = p
+            updated.stock = p.stock + item.qty
+            try? await FirebaseService.shared.saveProduct(updated)
+        }
+        try? await FirebaseService.shared.deleteWithdrawal(item.id ?? "")
+        loadData()
+    }
+
     private func emptyView(title: String, systemImage: String) -> some View {
         VStack(spacing: 12) {
             Spacer()
@@ -348,7 +350,7 @@ struct MovementFormView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(isEditing ? Color.blue.gradient : AppColors.primaryGradient)
+                                .background(isEditing ? AnyGradient(Color.blue.gradient) : AnyGradient(AppColors.primaryGradient))
                                 .cornerRadius(12)
                         }
                         .listRowInsets(EdgeInsets())

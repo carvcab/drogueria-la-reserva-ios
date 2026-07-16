@@ -249,7 +249,7 @@ struct OwnConsumptionFormView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(isEditing ? Color.blue.gradient : AppColors.primaryGradient)
+                                .background(isEditing ? AnyGradient(Color.blue.gradient) : AnyGradient(AppColors.primaryGradient))
                                 .cornerRadius(12)
                         }
                         .listRowInsets(EdgeInsets())
